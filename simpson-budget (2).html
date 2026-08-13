@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simpson Budget</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      /* ── Sunset Palette ── */
+      --navy:       #1D1A48;   /* darkest — header, summary card, FAB */
+      --purple:     #491C66;   /* deep purple — active tabs, accents */
+      --berry:      #7B3050;   /* wine/berry — highlights, active states */
+      --amber:      #F4AF4A;   /* gold — income, CTAs, highlights */
+      --blush:      #F0BCC0;   /* soft blush — category pills, light bg tint */
+
+      /* ── Derived utility tokens ── */
+      --cream:      #FAF5F7;   /* page background — very light blush-tinted white */
+      --warm-white: #FDF9FB;   /* card surfaces */
+      --grey-light: #EDE0E6;   /* borders, toggle backgrounds */
+      --grey-mid:   #C4A8B8;   /* placeholders, inactive icons */
+      --grey-text:  #7A5C6E;   /* secondary text */
+      --charcoal:   var(--navy);
+
+      --income-green: var(--amber);      /* income = amber/gold */
+      --expense-red:  var(--berry);      /* expense = berry */
+
+      --shadow-soft: 0 2px 16px rgba(29,26,72,0.08);
+      --shadow-card: 0 4px 24px rgba(29,26,72,0.12);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--cream);
+      color: var(--charcoal);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── TOP HEADER ─── */
+    .header {
+      background: var(--warm-white);
+      border-bottom: 1px solid var(--grey-light);
+      padding: 16px 20px 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .app-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--charcoal);
+      letter-spacing: 0.02em;
+    }
+
+    .app-title span {
+      color: var(--amber);
+    }
+
+    .month-selector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--grey-light);
+      border-radius: 20px;
+      padding: 6px 14px;
+    }
+
+    .month-selector button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--grey-text);
+      font-size: 16px;
+      line-height: 1;
+      padding: 0;
+      transition: color 0.15s;
+    }
+
+    .month-selector button:hover { color: var(--charcoal); }
+
+    .month-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--charcoal);
+      min-width: 80px;
+      text-align: center;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ─── ACCOUNT TABS ─── */
+    .account-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .account-tabs::-webkit-scrollbar { display: none; }
+
+    .account-tab {
+      flex-shrink: 0;
+      padding: 7px 16px;
+      border-radius: 20px;
+      border: 1.5px solid var(--grey-light);
+      background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--grey-text);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .account-tab.active {
+      background: var(--navy);
+      border-color: var(--navy);
+      color: white;
+    }
+
+    /* ─── PAY PERIOD TOGGLE ─── */
+    .period-bar {
+      display: flex;
+      background: var(--grey-light);
+      border-radius: 20px;
+      padding: 3px;
+      margin: 0 20px 12px;
+    }
+
+    .period-btn {
+      flex: 1;
+      padding: 7px;
+      border: none;
+      border-radius: 17px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      background: transparent;
+      color: var(--grey-text);
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .period-btn.active {
+      background: white;
+      color: var(--charcoal);
+      box-shadow: 0 1px 6px rgba(46,41,38,0.12);
+    }
+
+    /* ─── SUMMARY CARD ─── */
+    .summary-card {
+      margin: 0 16px 16px;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--purple) 100%);
+      border-radius: var(--radius);
+      padding: 20px;
+      color: white;
+    }
+
+    .summary-account-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--grey-mid);
+      margin-bottom: 4px;
+    }
+
+    .summary-balance {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 38px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+    }
+
+    .summary-balance.positive { color: var(--amber); }
+    .summary-balance.negative { color: var(--blush); }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .summary-item label {
+      font-size: 10px;
+      color: var(--grey-mid);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .summary-item .val {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .val.income { color: var(--amber); }
+    .val.expense { color: var(--blush); }
+
+    /* progress bar */
+    .spend-bar {
+      height: 5px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 14px;
+    }
+
+    .spend-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--amber), var(--berry));
+      transition: width 0.4s ease;
+    }
+
+    /* ─── BUDGET SECTION ─── */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--charcoal);
+    }
+
+    .section-action {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--berry);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border: none;
+      background: none;
+      padding: 0;
+    }
+
+    .budget-list {
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .budget-item {
+      background: white;
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .budget-item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 7px;
+    }
+
+    .budget-item-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--charcoal);
+    }
+
+    .budget-item-amounts {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .spent-amt { color: var(--charcoal); font-weight: 500; }
+    .budget-amt { color: var(--grey-text); }
+    .remaining-amt { font-size: 11px; font-weight: 500; }
+    .remaining-amt.ok { color: #2D7D46; }
+    .remaining-amt.warn { color: #C47A00; }
+    .remaining-amt.over { color: var(--berry); }
+
+    .budget-bar {
+      height: 4px;
+      background: var(--grey-light);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .budget-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .budget-fill.ok { background: #4CAF72; }
+    .budget-fill.warn { background: var(--amber); }
+    .budget-fill.over { background: var(--berry); }
+
+    /* ─── TRANSACTIONS ─── */
+    .transaction-list {
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 100px;
+    }
+
+    .transaction-item {
+      background: white;
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow-soft);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .transaction-item:active { transform: scale(0.99); }
+
+    .tx-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .tx-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--charcoal);
+    }
+
+    .tx-meta {
+      font-size: 11px;
+      color: var(--grey-text);
+      display: flex;
+      gap: 8px;
+    }
+
+    .tx-category-pill {
+      background: #F0BCC020;
+      color: var(--berry);
+      border-radius: 6px;
+      padding: 1px 6px;
+      font-size: 10px;
+      font-weight: 500;
+      background-color: #f0d0da;
+    }
+
+    .tx-amount {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .tx-amount.expense { color: var(--berry); }
+    .tx-amount.income { color: #2D7D46; }
+
+    /* ─── FLOATING ADD BUTTON ─── */
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--purple), var(--berry));
+      color: white;
+      border: none;
+      font-size: 26px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(73,28,102,0.35);
+      z-index: 200;
+      transition: transform 0.15s, background 0.2s;
+    }
+
+    .fab:active { transform: scale(0.93); }
+
+    /* ─── BOTTOM NAV ─── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid var(--grey-light);
+      display: flex;
+      padding: 8px 0 16px;
+      z-index: 100;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 0;
+      transition: color 0.15s;
+    }
+
+    .nav-item svg { width: 20px; height: 20px; }
+
+    .nav-item span {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+    }
+
+    .nav-item.active { color: var(--berry); }
+    .nav-item:not(.active) { color: var(--grey-mid); }
+
+    /* ─── MODAL ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(26,22,20,0.5);
+      z-index: 300;
+      align-items: flex-end;
+      backdrop-filter: blur(2px);
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--warm-white);
+      border-radius: 24px 24px 0 0;
+      padding: 20px 20px 40px;
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      animation: slideUp 0.25s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--grey-mid);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+
+    .modal-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--charcoal);
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--grey-text);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .type-toggle {
+      display: flex;
+      background: var(--grey-light);
+      border-radius: 12px;
+      padding: 3px;
+      margin-bottom: 16px;
+    }
+
+    .type-btn {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      border-radius: 9px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      background: transparent;
+      color: var(--grey-text);
+      transition: all 0.2s;
+    }
+
+    .type-btn.active {
+      background: white;
+      box-shadow: 0 1px 6px rgba(46,41,38,0.10);
+    }
+
+    .type-btn.active.expense { color: var(--expense-red); }
+    .type-btn.active.income { color: var(--income-green); }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px 14px;
+      background: white;
+      border: 1.5px solid var(--grey-light);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      color: var(--charcoal);
+      appearance: none;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--berry);
+    }
+
+    .amount-input-wrap {
+      position: relative;
+    }
+
+    .amount-prefix {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--grey-text);
+    }
+
+    .form-input.amount-field {
+      padding-left: 28px;
+      font-size: 22px;
+      font-weight: 500;
+    }
+
+    .period-assign {
+      display: flex;
+      gap: 8px;
+    }
+
+    .period-chip {
+      flex: 1;
+      padding: 9px;
+      border: 1.5px solid var(--grey-light);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      background: white;
+      color: var(--grey-text);
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .period-chip.active {
+      border-color: var(--berry);
+      background: #f0d0da;
+      color: var(--berry);
+    }
+
+    .modal-submit {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--navy), var(--purple));
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+
+    .modal-submit:active { background: var(--berry); }
+
+    .modal-cancel {
+      width: 100%;
+      padding: 12px;
+      background: none;
+      border: none;
+      color: var(--grey-text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
+    /* Budget edit modal */
+    .budget-edit-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .budget-edit-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--charcoal);
+    }
+
+    .budget-edit-input {
+      width: 100px;
+      padding: 8px 10px;
+      background: white;
+      border: 1.5px solid var(--grey-light);
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--charcoal);
+      text-align: right;
+      outline: none;
+    }
+
+    .budget-edit-input:focus { border-color: var(--berry); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--grey-text);
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Delete button on tx */
+    .tx-delete {
+      background: none;
+      border: none;
+      color: var(--grey-mid);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+      margin-left: 8px;
+      transition: color 0.15s;
+    }
+
+    .tx-delete:hover { color: var(--expense-red); }
+
+    /* Savings row */
+    .savings-grid {
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .savings-card {
+      background: white;
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .savings-card label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--grey-text);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .savings-card .savings-amt {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--charcoal);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: var(--navy);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 400;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* View sections */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ─── PIE CHART WRAP ─── */
+    .pie-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 16px 16px;
+      gap: 16px;
+    }
+
+    #pieChart {
+      max-width: 220px;
+      max-height: 220px;
+    }
+
+    .pie-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      justify-content: center;
+      padding: 0 4px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--grey-text);
+      font-weight: 500;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ─── ACCOUNT BUDGET BLOCKS (All view) ─── */
+    .account-budget-block {
+      margin: 0 16px 16px;
+    }
+
+    .account-budget-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--grey-text);
+      margin-bottom: 8px;
+    }
+
+    .acct-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .allowance-note {
+      font-size: 10px;
+      font-weight: 400;
+      color: var(--amber);
+      letter-spacing: 0;
+      text-transform: none;
+      margin-left: 2px;
+    }
+
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div class="app-title">Simpson <span>Budget</span></div>
+    <div class="month-selector">
+      <button onclick="changeMonth(-1)">‹</button>
+      <div class="month-label" id="monthLabel"></div>
+      <button onclick="changeMonth(1)">›</button>
+    </div>
+  </div>
+  <div class="account-tabs" id="accountTabs"></div>
+</div>
+
+<!-- PAY PERIOD BAR -->
+<div class="period-bar">
+  <button class="period-btn active" id="periodAll" onclick="setPeriod('all')">Full Month</button>
+  <button class="period-btn" id="period1" onclick="setPeriod('1')">Period 1 · 1–15</button>
+  <button class="period-btn" id="period2" onclick="setPeriod('2')">Period 2 · 16–30</button>
+</div>
+
+<!-- SUMMARY CARD -->
+<div class="summary-card" id="summaryCard">
+  <div class="summary-account-name" id="summaryAccountName">Simpson Joint</div>
+  <div class="summary-balance" id="summaryBalance">$0.00</div>
+  <div class="summary-row">
+    <div class="summary-item">
+      <label>Income</label>
+      <div class="val income" id="summaryIncome">$0.00</div>
+    </div>
+    <div class="summary-item">
+      <label>Expenses</label>
+      <div class="val expense" id="summaryExpense">$0.00</div>
+    </div>
+    <div class="summary-item">
+      <label>Budget Left</label>
+      <div class="val income" id="summaryBudgetLeft">—</div>
+    </div>
+  </div>
+  <div class="spend-bar"><div class="spend-fill" id="spendFill" style="width:0%"></div></div>
+</div>
+
+<!-- VIEWS -->
+<div id="viewSpending" class="view active">
+
+  <!-- ALL COMBINED VIEW (shown only when All tab active) -->
+  <div id="allView" style="display:none;">
+    <!-- Pie chart -->
+    <div class="section-header">
+      <div class="section-title">Spending Breakdown</div>
+    </div>
+    <div class="pie-wrap">
+      <canvas id="pieChart" width="260" height="260"></canvas>
+      <div class="pie-legend" id="pieLegend"></div>
+    </div>
+
+    <!-- Combined budget across all accounts -->
+    <div class="section-header" style="margin-top:8px;">
+      <div class="section-title">All Budgets</div>
+    </div>
+
+    <!-- Joint -->
+    <div class="account-budget-block">
+      <div class="account-budget-label">
+        <span class="acct-dot" style="background:var(--navy)"></span>
+        Simpson Joint
+      </div>
+      <div class="budget-list" id="budgetListJoint" style="padding:0;"></div>
+    </div>
+
+    <!-- Sally -->
+    <div class="account-budget-block">
+      <div class="account-budget-label">
+        <span class="acct-dot" style="background:var(--berry)"></span>
+        Sally Personal
+        <span class="allowance-note" id="sallyAllowanceNote"></span>
+      </div>
+      <div class="budget-list" id="budgetListSally" style="padding:0;"></div>
+    </div>
+
+    <!-- Ray -->
+    <div class="account-budget-block">
+      <div class="account-budget-label">
+        <span class="acct-dot" style="background:var(--amber)"></span>
+        Ray Personal
+        <span class="allowance-note" id="rayAllowanceNote"></span>
+      </div>
+      <div class="budget-list" id="budgetListRay" style="padding:0;"></div>
+    </div>
+
+    <!-- All transactions -->
+    <div class="section-header" style="margin-top:8px;">
+      <div class="section-title">All Transactions</div>
+    </div>
+    <div class="transaction-list" id="transactionListAll"></div>
+  </div>
+
+  <!-- SINGLE ACCOUNT VIEW (shown when specific account selected) -->
+  <div id="singleView">
+    <div class="section-header">
+      <div class="section-title">Budget</div>
+      <button class="section-action" onclick="openBudgetModal()">Edit</button>
+    </div>
+    <div class="budget-list" id="budgetList"></div>
+
+    <div class="section-header">
+      <div class="section-title">Transactions</div>
+    </div>
+    <div class="transaction-list" id="transactionList"></div>
+  </div>
+
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openAddModal()">+</button>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-item active" onclick="switchNav(this,'viewSpending')">
+    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <span>Overview</span>
+  </button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ADD TRANSACTION MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">New Transaction</div>
+    <div class="type-toggle">
+      <button class="type-btn active expense" id="typeExpense" onclick="setType('expense')">Expense</button>
+      <button class="type-btn income" id="typeIncome" onclick="setType('income')">Income</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amount</label>
+      <div class="amount-input-wrap">
+        <span class="amount-prefix">$</span>
+        <input type="number" id="txAmount" class="form-input amount-field" placeholder="0.00" step="0.01" inputmode="decimal" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input type="text" id="txDesc" class="form-input" placeholder="e.g. Chipotle, Verizon bill" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select id="txCategory" class="form-select"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Account</label>
+      <select id="txAccount" class="form-select"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input type="date" id="txDate" class="form-input" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Pay Period</label>
+      <div class="period-assign">
+        <button class="period-chip active" id="chipP1" onclick="setTxPeriod('1')">Period 1 · 1–15</button>
+        <button class="period-chip" id="chipP2" onclick="setTxPeriod('2')">Period 2 · 16–30</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Note (optional)</label>
+      <input type="text" id="txNote" class="form-input" placeholder="Add a note..." />
+    </div>
+    <button class="modal-submit" onclick="saveTransaction()">Save Transaction</button>
+    <button class="modal-cancel" onclick="closeModal('addModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- BUDGET EDIT MODAL -->
+<div class="modal-overlay" id="budgetModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Edit Budget</div>
+    <div id="budgetEditList"></div>
+    <div style="margin-top:14px;">
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input type="text" id="newCatName" class="form-input" placeholder="New category name" style="flex:1;" />
+        <button onclick="addCategory()" style="padding:12px 16px;background:var(--berry);color:white;border:none;border-radius:10px;font-weight:500;cursor:pointer;font-size:14px;">Add</button>
+      </div>
+    </div>
+    <button class="modal-submit" onclick="saveBudgets()">Save Budget</button>
+    <button class="modal-cancel" onclick="closeModal('budgetModal')">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────
+const STORAGE_KEY = 'simpsonBudget_v2';
+
+// Pie chart colors — one per category bucket
+const PIE_COLORS = [
+  '#1D1A48','#491C66','#7B3050','#F4AF4A','#F0BCC0',
+  '#9B4F6A','#C4782A','#3D2E7A','#6B3A8A','#D4905A',
+  '#8A2E50','#4A6FA5','#B86B3A','#5C3D7A','#A8C870',
+  '#D46A8A','#6A9E7A','#C4A840','#7A4E8A','#D49060',
+  '#4A8E9A','#A85C4A','#7A8E3A'
+];
+
+const defaultState = {
+  accounts: ['Simpson Joint', 'Sally Personal', 'Ray Personal'],
+  activeAccount: 'All',
+  activePeriod: 'all',
+  currentMonth: new Date().getMonth(),
+  currentYear: new Date().getFullYear(),
+  categories: [
+    'Rent','Tesla Car Note','Mercedes Car Note','Car Insurance','Tithes',
+    'Groceries','Food','Eating Out',"Sally's Allowance","Ray's Allowance",
+    'Utilities','Medicine/Vitamins','Fuel','Car Charge','Personal Things',
+    'Shopping','Gifts','Misc','Credit Card Payment','Date','Toll','Netflix',
+    'Subscriptions','Hair & Beauty','Other'
+  ],
+  // allowanceLinks: which joint category funds which personal account
+  // { jointCategory: accountName }
+  allowanceLinks: {
+    "Sally's Allowance": 'Sally Personal',
+    "Ray's Allowance": 'Ray Personal'
+  },
+  budgets: {
+    'Simpson Joint': {
+      'Rent':             { p1: 900,  p2: 0   },
+      'Tesla Car Note':   { p1: 0,    p2: 624 },
+      'Mercedes Car Note':{ p1: 441,  p2: 0   },
+      'Car Insurance':    { p1: 0,    p2: 356 },
+      'Tithes':           { p1: 150,  p2: 155 },
+      'Groceries':        { p1: 200,  p2: 200 },
+      'Utilities':        { p1: 0,    p2: 150 },
+      "Sally's Allowance":{ p1: 200,  p2: 0   },
+      "Ray's Allowance":  { p1: 150,  p2: 0   },
+      'Misc':             { p1: 50,   p2: 50  },
+    },
+    'Sally Personal': {
+      'Fuel':             { p1: 60,   p2: 60  },
+      'Personal Things':  { p1: 40,   p2: 40  },
+      'Hair & Beauty':    { p1: 50,   p2: 0   },
+      'Food':             { p1: 25,   p2: 25  },
+    },
+    'Ray Personal': {
+      'Car Charge':       { p1: 30,   p2: 30  },
+      'Food':             { p1: 30,   p2: 30  },
+      'Misc':             { p1: 30,   p2: 30  },
+    }
+  },
+  transactions: [
+    { id:'t1',  account:'Simpson Joint',  type:'income',  amount:4190.41, desc:'Paycheck',          category:'Other',             date:'2026-06-15', period:'1', note:'' },
+    { id:'t2',  account:'Simpson Joint',  type:'expense', amount:900,     desc:'Rent',               category:'Rent',              date:'2026-06-15', period:'1', note:'' },
+    { id:'t3',  account:'Simpson Joint',  type:'expense', amount:624,     desc:'Tesla Car Note',     category:'Tesla Car Note',    date:'2026-06-13', period:'1', note:'' },
+    { id:'t4',  account:'Simpson Joint',  type:'expense', amount:441,     desc:'Mercedes Car Note',  category:'Mercedes Car Note', date:'2026-06-20', period:'2', note:'' },
+    { id:'t5',  account:'Simpson Joint',  type:'expense', amount:356,     desc:'Car Insurance',      category:'Car Insurance',     date:'2026-06-16', period:'2', note:'' },
+    { id:'t6',  account:'Simpson Joint',  type:'expense', amount:305,     desc:'Tithes',             category:'Tithes',            date:'2026-06-21', period:'2', note:'' },
+    { id:'t7',  account:'Simpson Joint',  type:'expense', amount:174.34,  desc:'Groceries',          category:'Groceries',         date:'2026-06-14', period:'1', note:'' },
+    { id:'t8',  account:'Simpson Joint',  type:'expense', amount:170,     desc:'Medicine/Vitamins',  category:'Medicine/Vitamins', date:'2026-06-16', period:'2', note:'' },
+    { id:'t9',  account:'Simpson Joint',  type:'expense', amount:200,     desc:"Sally's Allowance",  category:"Sally's Allowance", date:'2026-06-15', period:'1', note:'' },
+    { id:'t10', account:'Simpson Joint',  type:'expense', amount:150,     desc:"Ray's Allowance",    category:"Ray's Allowance",   date:'2026-06-15', period:'1', note:'' },
+    { id:'t11', account:'Simpson Joint',  type:'expense', amount:124,     desc:'Utilities',          category:'Utilities',         date:'2026-06-16', period:'2', note:'' },
+    { id:'t12', account:'Simpson Joint',  type:'expense', amount:21.64,   desc:'Netflix',            category:'Netflix',           date:'2026-06-20', period:'2', note:'' },
+    { id:'t13', account:'Simpson Joint',  type:'expense', amount:65.40,   desc:'Date night',         category:'Date',              date:'2026-06-17', period:'2', note:'' },
+    { id:'t14', account:'Simpson Joint',  type:'expense', amount:66.76,   desc:'Misc',               category:'Misc',              date:'2026-06-15', period:'1', note:'' },
+    { id:'t15', account:'Simpson Joint',  type:'expense', amount:100,     desc:'Glaucoma Co Pay',    category:'Medicine/Vitamins', date:'2026-06-16', period:'2', note:'Ray eye appt' },
+    { id:'t16', account:'Sally Personal', type:'income',  amount:200,     desc:"Allowance from Joint",category:'Other',            date:'2026-06-15', period:'1', note:'' },
+    { id:'t17', account:'Sally Personal', type:'expense', amount:55,      desc:'Gas',                category:'Fuel',              date:'2026-06-12', period:'1', note:'' },
+    { id:'t18', account:'Sally Personal', type:'expense', amount:42,      desc:'Target run',         category:'Personal Things',   date:'2026-06-17', period:'2', note:'' },
+    { id:'t19', account:'Ray Personal',   type:'income',  amount:150,     desc:"Allowance from Joint",category:'Other',            date:'2026-06-15', period:'1', note:'' },
+    { id:'t20', account:'Ray Personal',   type:'expense', amount:28,      desc:'Car charge',         category:'Car Charge',        date:'2026-06-14', period:'1', note:'' },
+  ]
+};
+
+let state = loadState();
+
+// ── PERSISTENCE: localStorage with in-memory fallback ──
+let _memStore = null;
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (!parsed.allowanceLinks) parsed.allowanceLinks = defaultState.allowanceLinks;
+      return parsed;
+    }
+  } catch(e) {}
+  if (_memStore) { try { return JSON.parse(_memStore); } catch(e) {} }
+  return JSON.parse(JSON.stringify(defaultState));
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch(e) {
+    _memStore = JSON.stringify(state);
+  }
+}
+
+// ─────────────────────────────────────────
+// MONTHS
+// ─────────────────────────────────────────
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function changeMonth(dir) {
+  state.currentMonth += dir;
+  if (state.currentMonth > 11) { state.currentMonth = 0; state.currentYear++; }
+  if (state.currentMonth < 0)  { state.currentMonth = 11; state.currentYear--; }
+  saveState(); render();
+}
+
+// ─────────────────────────────────────────
+// FILTER HELPERS
+// ─────────────────────────────────────────
+function txInMonthPeriod(tx) {
+  const d = new Date(tx.date + 'T12:00:00');
+  const monthMatch = d.getMonth() === state.currentMonth && d.getFullYear() === state.currentYear;
+  const periodMatch = state.activePeriod === 'all' || tx.period === state.activePeriod;
+  return monthMatch && periodMatch;
+}
+
+function getFilteredTransactions(account) {
+  return state.transactions.filter(tx => {
+    const accMatch = account === 'All' ? true : tx.account === account;
+    return accMatch && txInMonthPeriod(tx);
+  });
+}
+
+function getBudgetedForPeriod(bv) {
+  if (state.activePeriod === 'all') return (bv.p1||0) + (bv.p2||0);
+  if (state.activePeriod === '1')   return bv.p1||0;
+  return bv.p2||0;
+}
+
+// ─────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────
+function render() {
+  document.getElementById('monthLabel').textContent =
+    MONTHS[state.currentMonth].slice(0,3).toUpperCase() + ' ' + state.currentYear;
+
+  // Account tabs
+  const tabsEl = document.getElementById('accountTabs');
+  tabsEl.innerHTML = '';
+  ['All', ...state.accounts].forEach(acc => {
+    const btn = document.createElement('button');
+    btn.className = 'account-tab' + (state.activeAccount === acc ? ' active' : '');
+    btn.textContent = acc === 'Sally Personal' ? 'Sally' : acc === 'Ray Personal' ? 'Ray' : acc === 'Simpson Joint' ? 'Joint' : acc;
+    btn.onclick = () => { state.activeAccount = acc; saveState(); render(); };
+    tabsEl.appendChild(btn);
+  });
+
+  // Period buttons
+  [['periodAll','all'],['period1','1'],['period2','2']].forEach(([id,val]) => {
+    document.getElementById(id).className = 'period-btn' + (state.activePeriod === val ? ' active' : '');
+  });
+
+  // Show/hide all vs single view
+  const isAll = state.activeAccount === 'All';
+  document.getElementById('allView').style.display    = isAll ? 'block' : 'none';
+  document.getElementById('singleView').style.display = isAll ? 'none'  : 'block';
+
+  // Summary card
+  const txs = getFilteredTransactions(state.activeAccount);
+  const income  = txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expense = txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const balance = income - expense;
+
+  document.getElementById('summaryAccountName').textContent =
+    state.activeAccount === 'All' ? 'All Accounts' :
+    state.activeAccount === 'Simpson Joint' ? 'Simpson Joint' :
+    state.activeAccount;
+
+  const balEl = document.getElementById('summaryBalance');
+  balEl.className = 'summary-balance ' + (balance >= 0 ? 'positive' : 'negative');
+  balEl.textContent = (balance < 0 ? '-' : '') + fmt(Math.abs(balance));
+  document.getElementById('summaryIncome').textContent  = fmt(income);
+  document.getElementById('summaryExpense').textContent = fmt(expense);
+
+  // Budget total
+  let totalBudget = 0;
+  const accsToSum = isAll ? state.accounts : [state.activeAccount];
+  accsToSum.forEach(acc => {
+    const b = state.budgets[acc] || {};
+    Object.values(b).forEach(bv => { totalBudget += getBudgetedForPeriod(bv); });
+  });
+
+  if (totalBudget > 0) {
+    const left = totalBudget - expense;
+    document.getElementById('summaryBudgetLeft').textContent = fmt(Math.abs(left));
+    document.getElementById('summaryBudgetLeft').className = 'val ' + (left >= 0 ? 'income' : 'expense');
+    document.getElementById('spendFill').style.width = Math.min(100,(expense/totalBudget)*100) + '%';
+  } else {
+    document.getElementById('summaryBudgetLeft').textContent = '—';
+    document.getElementById('spendFill').style.width = '0%';
+  }
+
+  if (isAll) {
+    renderAllView(txs);
+  } else {
+    renderBudget(txs, state.budgets[state.activeAccount] || {});
+    renderTransactions(txs, 'transactionList');
+  }
+}
+
+// ── ALL COMBINED VIEW ──
+function renderAllView(allTxs) {
+  // Allowance notes
+  const jointBudgets = state.budgets['Simpson Joint'] || {};
+  Object.entries(state.allowanceLinks).forEach(([cat, accName]) => {
+    const bv = jointBudgets[cat];
+    const total = bv ? getBudgetedForPeriod(bv) : 0;
+    const noteId = accName === 'Sally Personal' ? 'sallyAllowanceNote' : 'rayAllowanceNote';
+    const el = document.getElementById(noteId);
+    if (el) el.textContent = total > 0 ? `· ${fmt(total)} from Joint` : '';
+  });
+
+  // Per-account budget lists
+  state.accounts.forEach(acc => {
+    const idMap = {
+      'Simpson Joint':  'budgetListJoint',
+      'Sally Personal': 'budgetListSally',
+      'Ray Personal':   'budgetListRay'
+    };
+    const listEl = document.getElementById(idMap[acc]);
+    if (!listEl) return;
+    const txs = getFilteredTransactions(acc);
+    renderBudgetInto(listEl, txs, state.budgets[acc] || {});
+  });
+
+  // Combined transactions
+  renderTransactions(allTxs, 'transactionListAll');
+
+  // Pie chart — expenses by category across all accounts
+  drawPieChart(allTxs);
+}
+
+function renderBudgetInto(listEl, txs, budgets) {
+  listEl.innerHTML = '';
+  const keys = Object.keys(budgets);
+  if (!keys.length) {
+    listEl.innerHTML = '<div style="padding:8px 0;font-size:12px;color:var(--grey-text);">No budget set.</div>';
+    return;
+  }
+  let hasAny = false;
+  keys.forEach(cat => {
+    const bv = budgets[cat];
+    const budgeted = getBudgetedForPeriod(bv);
+    if (budgeted === 0) return;
+    hasAny = true;
+    const spent = txs.filter(t=>t.type==='expense'&&t.category===cat).reduce((s,t)=>s+t.amount,0);
+    const remaining = budgeted - spent;
+    const pct = Math.min(100,(spent/budgeted)*100);
+    const status = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : 'ok';
+    const item = document.createElement('div');
+    item.className = 'budget-item';
+    item.innerHTML = `
+      <div class="budget-item-top">
+        <span class="budget-item-name">${cat}</span>
+        <div class="budget-item-amounts">
+          <span class="spent-amt">${fmt(spent)}</span>
+          <span class="budget-amt">/ ${fmt(budgeted)}</span>
+          <span class="remaining-amt ${status}">${remaining >= 0 ? fmt(remaining)+' left' : fmt(Math.abs(remaining))+' over'}</span>
+        </div>
+      </div>
+      ${bv.note ? `<div style="font-size:11px;color:var(--grey-text);margin-bottom:5px;">${bv.note}</div>` : ''}
+      <div class="budget-bar"><div class="budget-fill ${status}" style="width:${pct}%"></div></div>
+    `;
+    listEl.appendChild(item);
+  });
+  if (!hasAny) listEl.innerHTML = '<div style="padding:8px 0;font-size:12px;color:var(--grey-text);">No budget set for this period.</div>';
+}
+
+function renderBudget(txs, budgets) {
+  renderBudgetInto(document.getElementById('budgetList'), txs, budgets);
+}
+
+function renderTransactions(txs, containerId) {
+  const list = document.getElementById(containerId);
+  list.innerHTML = '';
+  const sorted = [...txs].sort((a,b) => new Date(b.date) - new Date(a.date));
+  if (!sorted.length) {
+    list.innerHTML = '<div class="empty-state"><p>No transactions yet for this period.<br>Tap + to add one.</p></div>';
+    return;
+  }
+  sorted.forEach(tx => {
+    const d = new Date(tx.date + 'T12:00:00');
+    const dateStr = d.toLocaleDateString('en-US',{weekday:'short', month:'short', day:'numeric'});
+    const acctBadge = state.activeAccount === 'All'
+      ? `<span style="font-size:10px;background:var(--grey-light);color:var(--grey-text);border-radius:4px;padding:1px 5px;">${tx.account.replace(' Personal','').replace('Simpson ','')}</span>`
+      : '';
+    const item = document.createElement('div');
+    item.className = 'transaction-item';
+    item.innerHTML = `
+      <div class="tx-left">
+        <span class="tx-name">${tx.desc}</span>
+        <div class="tx-meta">
+          <span>${dateStr}</span>
+          ${acctBadge}
+          <span class="tx-category-pill">${tx.category}</span>
+          ${tx.note ? '<span>· '+tx.note+'</span>' : ''}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;">
+        <span class="tx-amount ${tx.type}">${tx.type==='expense'?'-':'+'} ${fmt(tx.amount)}</span>
+        <button class="tx-delete" onclick="deleteTransaction('${tx.id}',event)">×</button>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+// ── PIE CHART ──
+function drawPieChart(txs) {
+  const canvas = document.getElementById('pieChart');
+  const ctx = canvas.getContext('2d');
+  const size = canvas.width;
+  ctx.clearRect(0, 0, size, size);
+
+  // Aggregate expenses by category
+  const income = txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const catTotals = {};
+  txs.filter(t=>t.type==='expense').forEach(tx => {
+    catTotals[tx.category] = (catTotals[tx.category]||0) + tx.amount;
+  });
+
+  const entries = Object.entries(catTotals).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const total = entries.reduce((s,[,v])=>s+v,0);
+
+  if (!entries.length || total === 0) {
+    ctx.fillStyle = '#EDE0E6';
+    ctx.beginPath();
+    ctx.arc(size/2, size/2, size/2 - 4, 0, Math.PI*2);
+    ctx.fill();
+    document.getElementById('pieLegend').innerHTML = '<div class="legend-item">No expenses yet</div>';
+    return;
+  }
+
+  const cx = size/2, cy = size/2, r = size/2 - 6, innerR = r * 0.52;
+  let startAngle = -Math.PI / 2;
+
+  entries.forEach(([cat, val], i) => {
+    const slice = (val / total) * Math.PI * 2;
+    const color = PIE_COLORS[i % PIE_COLORS.length];
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, startAngle + slice);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#FAF5F7';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    startAngle += slice;
+  });
+
+  // Donut hole
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerR, 0, Math.PI*2);
+  ctx.fillStyle = '#FAF5F7';
+  ctx.fill();
+
+  // Center label
+  ctx.fillStyle = '#1D1A48';
+  ctx.font = '600 13px DM Sans, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('of income', cx, cy + 10);
+  ctx.font = '700 16px DM Sans, sans-serif';
+  ctx.fillStyle = '#7B3050';
+  const pctOfIncome = income > 0 ? Math.round((total/income)*100) : 0;
+  ctx.fillText(pctOfIncome + '% spent', cx, cy - 8);
+
+  // Legend
+  const legend = document.getElementById('pieLegend');
+  legend.innerHTML = entries.map(([cat, val], i) => {
+    const pct = Math.round((val/total)*100);
+    return `<div class="legend-item">
+      <span class="legend-dot" style="background:${PIE_COLORS[i % PIE_COLORS.length]}"></span>
+      ${cat} · ${pct}%
+    </div>`;
+  }).join('');
+}
+
+function fmt(n) {
+  return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+// ─────────────────────────────────────────
+// INTERACTIONS
+// ─────────────────────────────────────────
+function setPeriod(p) {
+  state.activePeriod = p;
+  saveState(); render();
+}
+
+let txType = 'expense';
+let txPeriod = '1';
+
+// ── INCOME vs EXPENSE CATEGORIES ──
+const INCOME_CATEGORIES = ['Salary','Paycheck','Allowance from Joint','Refund','Gift','Misc','Other'];
+const EXPENSE_CATEGORIES = [
+  'Rent','Tesla Car Note','Mercedes Car Note','Car Insurance','Tithes',
+  'Groceries','Food','Eating Out',"Sally's Allowance","Ray's Allowance",
+  'Utilities','Medicine/Vitamins','Fuel','Car Charge','Personal Things',
+  'Shopping','Gifts','Misc','Credit Card Payment','Date','Toll','Netflix',
+  'Subscriptions','Hair & Beauty','Other'
+];
+
+function getCategoriesForType(type) {
+  if (type === 'income') return INCOME_CATEGORIES;
+  // merge default expense + any user-added expense categories
+  const extras = state.categories.filter(c => !INCOME_CATEGORIES.includes(c) && !EXPENSE_CATEGORIES.includes(c));
+  return [...EXPENSE_CATEGORIES, ...extras];
+}
+
+function openAddModal() {
+  txType = 'expense';
+  txPeriod = new Date().getDate() <= 15 ? '1' : '2';
+  setType('expense');
+  setTxPeriod(txPeriod);
+
+  const accSel = document.getElementById('txAccount');
+  accSel.innerHTML = state.accounts.map(a=>`<option value="${a}" ${a===state.activeAccount&&state.activeAccount!=='All'?'selected':''}>${a}</option>`).join('');
+
+  const today = new Date();
+  document.getElementById('txDate').value = today.toISOString().split('T')[0];
+  document.getElementById('txAmount').value = '';
+  document.getElementById('txDesc').value = '';
+  document.getElementById('txNote').value = '';
+  refreshCategoryDropdown();
+  document.getElementById('addModal').classList.add('open');
+}
+
+function refreshCategoryDropdown() {
+  const cats = getCategoriesForType(txType);
+  document.getElementById('txCategory').innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function setType(t) {
+  txType = t;
+  document.getElementById('typeExpense').className = 'type-btn' + (t==='expense'?' active expense':'');
+  document.getElementById('typeIncome').className  = 'type-btn' + (t==='income' ?' active income' :'');
+  refreshCategoryDropdown();
+}
+
+function setTxPeriod(p) {
+  txPeriod = p;
+  document.getElementById('chipP1').className = 'period-chip' + (p==='1'?' active':'');
+  document.getElementById('chipP2').className = 'period-chip' + (p==='2'?' active':'');
+}
+
+function saveTransaction() {
+  const amount   = parseFloat(document.getElementById('txAmount').value);
+  const desc     = document.getElementById('txDesc').value.trim();
+  const category = document.getElementById('txCategory').value;
+  const account  = document.getElementById('txAccount').value;
+  const date     = document.getElementById('txDate').value;
+  const note     = document.getElementById('txNote').value.trim();
+
+  if (!amount || amount <= 0) { showToast('Enter a valid amount'); return; }
+  if (!desc)                  { showToast('Add a description');    return; }
+  if (!date)                  { showToast('Pick a date');          return; }
+
+  const tx = { id:'t'+Date.now(), account, type:txType, amount, desc, category, date, period:txPeriod, note };
+  state.transactions.push(tx);
+  saveState();
+  closeModal('addModal');
+  render();
+  showToast('Transaction saved ✓');
+}
+
+function deleteTransaction(id, e) {
+  e.stopPropagation();
+  state.transactions = state.transactions.filter(t=>t.id!==id);
+  saveState(); render();
+  showToast('Transaction removed');
+}
+
+function openBudgetModal() {
+  if (state.activeAccount === 'All') { showToast('Select Joint, Sally, or Ray to edit budget'); return; }
+  const budgets = state.budgets[state.activeAccount] || {};
+  const list = document.getElementById('budgetEditList');
+  list.innerHTML = '';
+
+  // Show allowance context note for personal accounts
+  const linkedFrom = Object.entries(state.allowanceLinks).find(([,acc])=>acc===state.activeAccount);
+  if (linkedFrom) {
+    const [jointCat] = linkedFrom;
+    const jb = (state.budgets['Simpson Joint']||{})[jointCat];
+    const jTotal = jb ? getBudgetedForPeriod(jb) : 0;
+    const noteEl = document.createElement('div');
+    noteEl.style.cssText = 'background:#f0d0da;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--berry);line-height:1.5;';
+    noteEl.innerHTML = `<strong>Allowance total:</strong> ${fmt(jTotal)} from Joint (${jointCat}). Your categories below should add up to ${fmt(jTotal)}.`;
+    list.appendChild(noteEl);
+  }
+
+  // Render all expense categories with P1 / P2 amounts + optional note
+  const allExpenseCats = getCategoriesForType('expense');
+  allExpenseCats.forEach(cat => {
+    const bv = budgets[cat] || { p1: 0, p2: 0, note: '' };
+    const row = document.createElement('div');
+    row.className = 'budget-edit-row';
+    row.style.cssText = 'flex-direction:column;align-items:stretch;gap:6px;';
+    row.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="budget-edit-name">${cat}</span>
+        <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
+          <div style="font-size:10px;color:var(--grey-text);">P1 · P2</div>
+          <div style="display:flex;gap:6px;">
+            <input type="number" class="budget-edit-input" data-cat="${cat}" data-p="p1" value="${bv.p1||''}" placeholder="P1" step="1" />
+            <input type="number" class="budget-edit-input" data-cat="${cat}" data-p="p2" value="${bv.p2||''}" placeholder="P2" step="1" />
+          </div>
+        </div>
+      </div>
+      <input type="text" class="budget-note-input" data-cat="${cat}" value="${(bv.note||'').replace(/"/g,'&quot;')}" placeholder="Note or description (optional)" style="width:100%;padding:7px 10px;background:var(--grey-light);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--charcoal);outline:none;" />
+    `;
+    list.appendChild(row);
+  });
+  document.getElementById('newCatName').value = '';
+  document.getElementById('budgetModal').classList.add('open');
+}
+
+function addCategory() {
+  const nameEl = document.getElementById('newCatName');
+  const name = nameEl.value.trim();
+  if (!name) { showToast('Enter a category name'); return; }
+  if (state.categories.includes(name)) { showToast('Category already exists'); return; }
+
+  // Add to master list
+  state.categories.push(name);
+  saveState();
+  nameEl.value = '';
+
+  // Append new row directly to the modal without closing it
+  const budgets = state.budgets[state.activeAccount] || {};
+  const list = document.getElementById('budgetEditList');
+  const row = document.createElement('div');
+  row.className = 'budget-edit-row';
+  row.style.cssText = 'flex-direction:column;align-items:stretch;gap:6px;';
+  row.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span class="budget-edit-name">${name}</span>
+      <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
+        <div style="font-size:10px;color:var(--grey-text);">P1 · P2</div>
+        <div style="display:flex;gap:6px;">
+          <input type="number" class="budget-edit-input" data-cat="${name}" data-p="p1" value="" placeholder="P1" step="1" />
+          <input type="number" class="budget-edit-input" data-cat="${name}" data-p="p2" value="" placeholder="P2" step="1" />
+        </div>
+      </div>
+    </div>
+    <input type="text" class="budget-note-input" data-cat="${name}" value="" placeholder="Note or description (optional)" style="width:100%;padding:7px 10px;background:var(--grey-light);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--charcoal);outline:none;" />
+  `;
+  // Insert before the new-category input section (last 3 children: note-input-wrap, submit, cancel)
+  const addSection = list.parentElement.querySelector('div[style*="margin-top"]');
+  list.parentElement.insertBefore(row, addSection);
+  showToast(`"${name}" added — set amounts and save`);
+}
+
+function saveBudgets() {
+  if (!state.budgets[state.activeAccount]) state.budgets[state.activeAccount] = {};
+  // Save P1/P2 amounts
+  document.querySelectorAll('.budget-edit-input').forEach(inp => {
+    const cat = inp.dataset.cat;
+    const p   = inp.dataset.p;
+    const val = parseFloat(inp.value) || 0;
+    if (!state.budgets[state.activeAccount][cat]) state.budgets[state.activeAccount][cat] = { p1:0, p2:0, note:'' };
+    state.budgets[state.activeAccount][cat][p] = val;
+  });
+  // Save notes
+  document.querySelectorAll('.budget-note-input').forEach(inp => {
+    const cat = inp.dataset.cat;
+    if (!state.budgets[state.activeAccount][cat]) state.budgets[state.activeAccount][cat] = { p1:0, p2:0, note:'' };
+    state.budgets[state.activeAccount][cat].note = inp.value.trim();
+  });
+  saveState();
+  closeModal('budgetModal');
+  render();
+  showToast('Budget saved ✓');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+document.getElementById('txDate').addEventListener('change', function() {
+  const day = parseInt(this.value.split('-')[2]);
+  setTxPeriod(day <= 15 ? '1' : '2');
+});
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+render();
+</script>
+</body>
+</html>
