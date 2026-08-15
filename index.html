@@ -153,6 +153,34 @@ body {
 .budget-fill.warn { background: var(--gold); }
 .budget-fill.over { background: var(--expense-col); }
 .budget-note-text { font-size: 11px; color: var(--grey-text); margin-bottom: 5px; }
+.carryover-badge {
+  font-size: 10px; font-weight: 500; background: var(--gold-light);
+  color: #6B4A00; border-radius: 5px; padding: 1px 6px; margin-left: 6px;
+}
+.cat-delete-btn {
+  background: none; border: none; cursor: pointer; color: var(--grey-mid);
+  font-size: 18px; line-height: 1; padding: 0 0 0 8px; flex-shrink: 0;
+}
+.cat-delete-btn:hover { color: var(--expense-col); }
+.carryover-toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0; font-size: 12px; color: var(--grey-text);
+}
+.toggle-switch {
+  position: relative; width: 36px; height: 20px;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0; border-radius: 20px;
+  background: var(--grey-light); cursor: pointer; transition: 0.2s;
+}
+.toggle-slider:before {
+  content: ''; position: absolute; width: 14px; height: 14px;
+  left: 3px; top: 3px; border-radius: 50%;
+  background: white; transition: 0.2s;
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--forest-mid); }
+.toggle-switch input:checked + .toggle-slider:before { transform: translateX(16px); }
 .transaction-list {
   padding: 0 16px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 100px;
 }
@@ -698,7 +726,7 @@ function renderBudgetInto(listEl, txs, budgets) {
     item.className = 'budget-item';
     item.innerHTML =
       '<div class="budget-item-top">' +
-        '<span class="budget-item-name">' + cat + '</span>' +
+        '<span class="budget-item-name">' + cat + (bv.carryover ? '<span class="carryover-badge">Carryover</span>' : '') + '</span>' +
         '<div class="budget-item-amounts">' +
           '<span class="spent-amt">' + fmt(spent) + '</span>' +
           '<span class="budget-amt">/ ' + fmt(budgeted) + '</span>' +
@@ -827,13 +855,21 @@ function openBudgetModal() {
     note.innerHTML = '<strong>Allowance total:</strong> ' + fmt(jTotal) + ' from Joint (' + jointCat + '). Your categories should add up to ' + fmt(jTotal) + '.';
     list.appendChild(note);
   }
-  getExpenseCats().forEach(cat => {
-    const bv = budgets[cat] || { p1:0, p2:0, note:'' };
-    const row = document.createElement('div');
-    row.className = 'budget-edit-row';
-    row.innerHTML =
-      '<div class="budget-edit-row-top">' +
-        '<span class="budget-edit-name">'+cat+'</span>' +
+  getExpenseCats().forEach(cat => buildBudgetRow(list, cat, budgets[cat] || { p1:0, p2:0, note:'', carryover:false }));
+  document.getElementById('newCatName').value = '';
+  document.getElementById('budgetModal').classList.add('open');
+}
+
+function buildBudgetRow(list, cat, bv) {
+  const isExtra = state.extraCategories && state.extraCategories.includes(cat);
+  const row = document.createElement('div');
+  row.className = 'budget-edit-row';
+  row.dataset.cat = cat;
+  row.innerHTML =
+    '<div class="budget-edit-row-top">' +
+      '<span class="budget-edit-name">' + cat + '</span>' +
+      '<div style="display:flex;align-items:center;gap:6px;">' +
+        (isExtra ? '<button class="cat-delete-btn" data-cat="' + cat + '" title="Delete category">×</button>' : '') +
         '<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">' +
           '<div style="font-size:10px;color:var(--grey-text);">P1 · P2</div>' +
           '<div style="display:flex;gap:6px;">' +
@@ -842,31 +878,39 @@ function openBudgetModal() {
           '</div>' +
         '</div>' +
       '</div>' +
-      '<input type="text" class="budget-note-input" data-cat="'+cat+'" value="'+((bv.note||'').replace(/"/g,'&quot;'))+'" placeholder="Note or description (optional)"/>';
-    list.appendChild(row);
-  });
-  document.getElementById('newCatName').value = '';
-  document.getElementById('budgetModal').classList.add('open');
+    '</div>' +
+    '<div class="carryover-toggle-row">' +
+      '<span>Carry unused budget to next month</span>' +
+      '<label class="toggle-switch">' +
+        '<input type="checkbox" class="carryover-check" data-cat="'+cat+'"' + (bv.carryover ? ' checked' : '') + '/>' +
+        '<span class="toggle-slider"></span>' +
+      '</label>' +
+    '</div>' +
+    '<input type="text" class="budget-note-input" data-cat="'+cat+'" value="'+((bv.note||'').replace(/"/g,'&quot;'))+'" placeholder="Note or description (optional)"/>';
+  list.appendChild(row);
+
+  // Delete listener for user-added categories only
+  const delBtn = row.querySelector('.cat-delete-btn');
+  if (delBtn) {
+    delBtn.addEventListener('click', () => {
+      state.extraCategories = (state.extraCategories||[]).filter(c => c !== cat);
+      if (state.budgets[state.activeAccount]) delete state.budgets[state.activeAccount][cat];
+      saveState(); row.remove();
+      showToast('"' + cat + '" removed');
+    });
+  }
 }
 
 function addCategoryRow(name) {
   const list = document.getElementById('budgetEditList');
   const addSection = document.getElementById('budgetModal').querySelector('div[style*="margin-top"]');
-  const row = document.createElement('div');
-  row.className = 'budget-edit-row';
-  row.innerHTML =
-    '<div class="budget-edit-row-top">' +
-      '<span class="budget-edit-name">'+name+'</span>' +
-      '<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">' +
-        '<div style="font-size:10px;color:var(--grey-text);">P1 · P2</div>' +
-        '<div style="display:flex;gap:6px;">' +
-          '<input type="number" class="budget-edit-input" data-cat="'+name+'" data-p="p1" value="" placeholder="P1" step="1"/>' +
-          '<input type="number" class="budget-edit-input" data-cat="'+name+'" data-p="p2" value="" placeholder="P2" step="1"/>' +
-        '</div>' +
-      '</div>' +
-    '</div>' +
-    '<input type="text" class="budget-note-input" data-cat="'+name+'" value="" placeholder="Note or description (optional)"/>';
-  list.insertBefore(row, addSection);
+  const tempRow = document.createElement('div');
+  list.insertBefore(tempRow, addSection);
+  buildBudgetRow(list, name, { p1:0, p2:0, note:'', carryover:false });
+  list.removeChild(tempRow);
+  // Move new row before addSection
+  const newRow = list.lastElementChild;
+  list.insertBefore(newRow, addSection);
 }
 
 // ── EVENT LISTENERS ──
@@ -949,13 +993,18 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('#budgetEditList .budget-edit-input').forEach(inp => {
       const cat = inp.dataset.cat; const p = inp.dataset.p;
       const val = parseFloat(inp.value) || 0;
-      if (!state.budgets[state.activeAccount][cat]) state.budgets[state.activeAccount][cat] = { p1:0, p2:0, note:'' };
+      if (!state.budgets[state.activeAccount][cat]) state.budgets[state.activeAccount][cat] = { p1:0, p2:0, note:'', carryover:false };
       state.budgets[state.activeAccount][cat][p] = val;
     });
     document.querySelectorAll('#budgetEditList .budget-note-input').forEach(inp => {
       const cat = inp.dataset.cat;
-      if (!state.budgets[state.activeAccount][cat]) state.budgets[state.activeAccount][cat] = { p1:0, p2:0, note:'' };
+      if (!state.budgets[state.activeAccount][cat]) state.budgets[state.activeAccount][cat] = { p1:0, p2:0, note:'', carryover:false };
       state.budgets[state.activeAccount][cat].note = inp.value.trim();
+    });
+    document.querySelectorAll('#budgetEditList .carryover-check').forEach(chk => {
+      const cat = chk.dataset.cat;
+      if (!state.budgets[state.activeAccount][cat]) state.budgets[state.activeAccount][cat] = { p1:0, p2:0, note:'', carryover:false };
+      state.budgets[state.activeAccount][cat].carryover = chk.checked;
     });
     saveState();
     document.getElementById('budgetModal').classList.remove('open');
