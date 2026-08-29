@@ -73,7 +73,7 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 /* ── HEADER ── */
 .top-header{background:var(--navy-deep);padding:16px 16px 20px;position:relative;overflow:hidden;}
 .top-header::before{content:'';position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;background:rgba(214,228,238,0.05);}
-.money-motif{position:absolute;right:50px;top:6px;pointer-events:none;}
+.money-motif{position:absolute;right:64px;top:4px;pointer-events:none;}
 .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;position:relative;z-index:1;}
 .app-name{font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:white;}
 .app-tagline{font-size:10px;color:rgba(214,228,238,0.6);letter-spacing:0.04em;margin-top:1px;}
@@ -292,6 +292,27 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 .view.active{display:block;}
 .empty{text-align:center;padding:24px 16px;color:var(--tm);font-size:12px;}
 .spacer{height:16px;}
+/* ── MONEY AT A GLANCE ── */
+.glance-card{margin:10px 16px 0;background:var(--navy);border-radius:var(--r);padding:16px;box-shadow:var(--sh);}
+.glance-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:rgba(214,228,238,0.55);margin-bottom:12px;}
+.glance-row{display:flex;gap:1px;background:rgba(255,255,255,0.08);border-radius:var(--rsm);overflow:hidden;}
+.glance-item{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:4px;background:rgba(255,255,255,0.05);}
+.glance-item:first-child{border-radius:var(--rsm) 0 0 var(--rsm);}
+.glance-item:last-child{border-radius:0 var(--rsm) var(--rsm) 0;}
+.glance-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:rgba(214,228,238,0.5);}
+.glance-val{font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:white;line-height:1;}
+.glance-val.good{color:var(--seafoam);}
+.glance-val.warn{color:var(--gold-lt);}
+.glance-val.danger{color:var(--coral);}
+.glance-sub{font-size:9px;color:rgba(214,228,238,0.4);margin-top:1px;}
+
+/* ── COLLAPSIBLE SECTIONS ── */
+.collapsible-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 8px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.collapsible-hdr .sec-title{pointer-events:none;}
+.collapse-chevron{font-size:12px;color:var(--tm);transition:transform 0.2s;user-select:none;}
+.collapse-chevron.open{transform:rotate(180deg);}
+.collapsible-body{overflow:hidden;transition:max-height 0.3s ease;}
+.collapsible-body.collapsed{max-height:0;}
 /* Checkbox row */
 .check-row{display:flex;align-items:center;gap:8px;padding:4px 0;}
 .check-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--navy);}
@@ -353,33 +374,39 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 <!-- ── HEADER ── -->
 <div class="app-header">
 <div class="top-header">
-  <svg class="money-motif" width="130" height="100" viewBox="0 0 140 110" fill="none">
-    <g transform="translate(8,6) rotate(-6,70,55)">
-      <rect x="10" y="42" width="110" height="56" rx="4" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-      <rect x="18" y="50" width="94" height="40" rx="2" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.6"/>
-      <text x="65" y="73" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.2)" font-family="serif" font-weight="600">100</text>
-    </g>
-    <g transform="translate(4,3) rotate(-3,70,55)">
-      <rect x="10" y="38" width="110" height="56" rx="4" fill="rgba(255,255,255,0.11)" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
-      <rect x="18" y="46" width="94" height="40" rx="2" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.6"/>
-      <text x="65" y="69" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.25)" font-family="serif" font-weight="600">100</text>
-    </g>
-    <g>
-      <rect x="10" y="34" width="110" height="56" rx="4" fill="rgba(255,255,255,0.16)" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"/>
-      <rect x="17" y="41" width="96" height="42" rx="2" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="0.7"/>
-      <ellipse cx="65" cy="62" rx="13" ry="10" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.3)" stroke-width="0.7"/>
-      <text x="65" y="66" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.7)" font-family="Georgia,serif" font-weight="700">$</text>
-      <text x="24" y="52" font-size="7" fill="rgba(255,255,255,0.45)" font-family="Inter,sans-serif" font-weight="700">100</text>
-      <text x="96" y="52" font-size="7" fill="rgba(255,255,255,0.45)" font-family="Inter,sans-serif" font-weight="700">100</text>
-      <text x="65" y="80" text-anchor="middle" font-size="5" fill="rgba(255,255,255,0.3)" font-family="Inter,sans-serif" letter-spacing="0.8">UNITED STATES OF AMERICA</text>
-      <line x1="22" y1="45" x2="108" y2="45" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
-      <line x1="22" y1="78" x2="108" y2="78" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
-    </g>
+  <!-- Gold coin stack illustration -->
+  <svg class="money-motif" width="72" height="90" viewBox="0 0 72 90" fill="none">
+    <!-- Shadow -->
+    <ellipse cx="36" cy="86" rx="28" ry="5" fill="rgba(0,0,0,0.18)"/>
+    <!-- Coin 1 – bottom -->
+    <ellipse cx="36" cy="74" rx="28" ry="8" fill="#8B6A1A"/>
+    <ellipse cx="36" cy="71" rx="28" ry="8" fill="#C4A55A"/>
+    <ellipse cx="36" cy="70" rx="28" ry="8" fill="#EDD98A"/>
+    <ellipse cx="36" cy="69" rx="26" ry="6.5" fill="#C4A55A"/>
+    <!-- Coin 2 -->
+    <ellipse cx="36" cy="58" rx="28" ry="8" fill="#8B6A1A"/>
+    <ellipse cx="36" cy="55" rx="28" ry="8" fill="#C4A55A"/>
+    <ellipse cx="36" cy="54" rx="28" ry="8" fill="#EDD98A"/>
+    <ellipse cx="36" cy="53" rx="26" ry="6.5" fill="#C4A55A"/>
+    <!-- Coin 3 -->
+    <ellipse cx="36" cy="42" rx="28" ry="8" fill="#8B6A1A"/>
+    <ellipse cx="36" cy="39" rx="28" ry="8" fill="#C4A55A"/>
+    <ellipse cx="36" cy="38" rx="28" ry="8" fill="#EDD98A"/>
+    <ellipse cx="36" cy="37" rx="26" ry="6.5" fill="#C4A55A"/>
+    <!-- Coin 4 – top -->
+    <ellipse cx="36" cy="26" rx="28" ry="8" fill="#8B6A1A"/>
+    <ellipse cx="36" cy="23" rx="28" ry="8" fill="#C4A55A"/>
+    <ellipse cx="36" cy="22" rx="28" ry="8" fill="#F5E4A0"/>
+    <ellipse cx="36" cy="21" rx="26" ry="6.5" fill="#EDD98A"/>
+    <!-- $ on top coin -->
+    <text x="36" y="25" text-anchor="middle" font-size="11" fill="#8B6A1A" font-family="Georgia,serif" font-weight="700">$</text>
+    <!-- Shine on top coin -->
+    <ellipse cx="28" cy="19" rx="6" ry="2.5" fill="rgba(255,255,255,0.35)" transform="rotate(-20,28,19)"/>
   </svg>
   <div class="header-row">
     <div>
       <div class="app-name">Simpson Budget</div>
-      <div class="app-tagline">Build wealth, give generously.</div>
+      <div class="app-tagline">Steward faithfully. Build wisely. Give generously.</div>
     </div>
     <div class="avatar" id="btnSignOut" title="Sign out">
       <span class="avatar-initials" id="avatarInitial">S</span>
@@ -421,6 +448,8 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
     <div class="scripture-ref">Deuteronomy 8:18</div>
     <div class="scripture-text">"It is <em>he who gives you the ability to produce wealth</em>, and so confirms his covenant."</div>
   </div>
+
+  <!-- Available to Spend card -->
   <div class="summary-card">
     <div class="avail-lbl" id="homeAcctName">All Accounts</div>
     <div class="balance-amt" id="homeBalance">$0.00</div>
@@ -428,16 +457,63 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
     <div class="prog-track"><div class="prog-fill" id="homeProgFill" style="width:0%"></div></div>
     <div class="prog-lbls"><span id="homePctLbl">0% of budget used</span><span id="homeDaysLeft"></span></div>
   </div>
+
+  <!-- Money at a Glance card -->
+  <div class="glance-card">
+    <div class="glance-title">Money at a Glance</div>
+    <div class="glance-row">
+      <div class="glance-item">
+        <div class="glance-lbl">Bills Left</div>
+        <div class="glance-val" id="glanceBillsLeft">—</div>
+        <div class="glance-sub" id="glanceBillsCount"></div>
+      </div>
+      <div class="glance-item">
+        <div class="glance-lbl">Safe to Spend</div>
+        <div class="glance-val" id="glanceSafe">—</div>
+        <div class="glance-sub">after bills</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upcoming Bills -->
   <div class="sec-hdr"><div class="sec-title">Upcoming Bills</div><button class="sec-link" id="btnGoToBills">See all</button></div>
   <div class="upcoming-scroll" id="upcomingMini"></div>
+
+  <!-- Spending (always visible) -->
   <div class="sec-hdr"><div class="sec-title">Spending</div></div>
   <div class="spending-card">
     <div class="pie-side"><canvas id="pieHome" width="120" height="120"></canvas></div>
     <div class="pie-legend-side" id="legendHome"></div>
   </div>
-  <div id="homeAllBudgets"></div><!-- budget blocks for all/single -->
-  <div class="sec-hdr" style="margin-top:4px;"><div class="sec-title">Monthly Totals</div></div>
-  <div class="totals-card" id="homeTotals"></div>
+
+  <!-- Budget at a Glance — collapsible -->
+  <div class="collapsible-hdr" id="hdrBudget">
+    <div class="sec-title">Budget at a Glance</div>
+    <span class="collapse-chevron" id="chevBudget">▾</span>
+  </div>
+  <div class="collapsible-body collapsed" id="bodyBudget">
+    <div id="homeAllBudgets"></div>
+  </div>
+
+  <!-- Monthly Totals — collapsible -->
+  <div class="collapsible-hdr" id="hdrTotals">
+    <div class="sec-title">Monthly Totals</div>
+    <span class="collapse-chevron" id="chevTotals">▾</span>
+  </div>
+  <div class="collapsible-body collapsed" id="bodyTotals">
+    <div class="totals-card" id="homeTotals" style="margin:0 16px;"></div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- Transactions — collapsible -->
+  <div class="collapsible-hdr" id="hdrTx">
+    <div class="sec-title">Transactions</div>
+    <span class="collapse-chevron" id="chevTx">▾</span>
+  </div>
+  <div class="collapsible-body collapsed" id="bodyTx">
+    <div class="tx-list" id="txListHome" style="margin:0 16px;"></div>
+    <div class="spacer"></div>
+  </div>
   <div class="spacer"></div>
 </div>
 
@@ -1156,9 +1232,10 @@ function renderHome(){
   document.getElementById('homeDaysLeft').textContent=daysLeft();
 
   renderUpcomingMini();
-
-  // Pie — always show all month
   drawPie(getAllMonthTxs(acct),'pieHome','legendHome');
+
+  // Money at a Glance
+  renderGlanceCard(acct, txs);
 
   // Budget blocks
   const allBudgetsEl=document.getElementById('homeAllBudgets');allBudgetsEl.innerHTML='';
@@ -1174,15 +1251,36 @@ function renderHome(){
       if(listEl)renderBudgetGlance(listEl,getTxs(a),state.budgets[a]||{});
     });
   } else {
-    const block=document.createElement('div');block.className='sec-hdr';block.innerHTML='<div class="sec-title">Budget at a glance</div>';
-    allBudgetsEl.appendChild(block);
     const glance=document.createElement('div');glance.className='budget-glance';glance.style.margin='0 16px';
     allBudgetsEl.appendChild(glance);
     renderBudgetGlance(glance,txs,state.budgets[acct]||{});
   }
 
-  // Totals
   renderTotals('homeTotals',getAllMonthTxs(acct));
+  renderTxList(getTxs(acct),'txListHome');
+}
+
+// ── MONEY AT A GLANCE ──
+function renderGlanceCard(acct, txs){
+  const today=new Date();const todayDay=today.getDate();
+  const bills=(state.bills||[]).filter(b=>acct==='All'||b.account===acct);
+  // Bills left = bills whose day hasn't passed yet this period
+  const billsLeft=bills.filter(b=>b.day>=todayDay);
+  const billsTotal=billsLeft.reduce((s,b)=>s+b.amount,0);
+  const billsCount=billsLeft.length;
+
+  const income=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expense=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const safe=income-expense-billsTotal;
+
+  const blEl=document.getElementById('glanceBillsLeft');
+  const scEl=document.getElementById('glanceBillsCount');
+  const sfEl=document.getElementById('glanceSafe');
+
+  blEl.textContent=fmt(billsTotal);
+  scEl.textContent=billsCount===0?'all paid':billsCount+' bill'+(billsCount===1?'':'s')+' remaining';
+  sfEl.textContent=(safe<0?'−':'')+fmt(Math.abs(safe));
+  sfEl.className='glance-val'+(safe<0?' danger':safe<200?' warn':' good');
 }
 
 // ── BUDGETS VIEW ──
@@ -1203,10 +1301,16 @@ function renderAll(){
 
 function renderAccountTabs(){
   const el=document.getElementById('accountTabs');el.innerHTML='';
-  [{label:'All',acc:'All'},{label:'Household',acc:'Simpson Joint'},{label:'Sally',acc:'Sally Personal'},{label:'Ray',acc:'Ray Personal'}].forEach(({label,acc})=>{
-    const btn=document.createElement('button');btn.className='account-tab'+(state.activeAccount===acc?' active':'');
-    btn.textContent=label;
-    btn.addEventListener('click',()=>{state.activeAccount=acc;save();renderAll();});
+  [
+    {label:'All',      acc:'All',            icon:'⊞'},
+    {label:'Household',acc:'Simpson Joint',   icon:'🏠'},
+    {label:'Sally',    acc:'Sally Personal',  icon:'👩🏾'},
+    {label:'Ray',      acc:'Ray Personal',    icon:'👨🏾'},
+  ].forEach(({label,acc,icon})=>{
+    const btn=document.createElement('button');
+    btn.className='account-tab'+(state.activeAccount===acc?' active':'');
+    btn.innerHTML=`<span style="margin-right:3px;">${icon}</span>${label}`;
+    btn.addEventListener('click',()=>{state.activeAccount=acc;saveUIState();renderAll();});
     el.appendChild(btn);
   });
 }
@@ -1477,6 +1581,30 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Close modals on overlay tap
   document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+  // ── COLLAPSIBLE SECTIONS ──
+  [
+    ['hdrBudget','bodyBudget','chevBudget'],
+    ['hdrTotals','bodyTotals','chevTotals'],
+    ['hdrTx',    'bodyTx',    'chevTx'],
+  ].forEach(([hdrId,bodyId,chevId])=>{
+    const hdr=document.getElementById(hdrId);
+    const body=document.getElementById(bodyId);
+    const chev=document.getElementById(chevId);
+    let open=false;
+    hdr.addEventListener('click',()=>{
+      open=!open;
+      if(open){
+        body.classList.remove('collapsed');
+        body.style.maxHeight=body.scrollHeight+'px';
+        chev.classList.add('open');
+      } else {
+        body.style.maxHeight='0';
+        chev.classList.remove('open');
+        setTimeout(()=>body.classList.add('collapsed'),300);
+      }
+    });
+  });
 
   // Render skeleton while waiting for auth
   renderAll();
