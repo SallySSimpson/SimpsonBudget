@@ -490,7 +490,7 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
   <div class="collapsible-hdr" id="hdrBudget">
     <div class="sec-title">Budget at a Glance</div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <button class="sec-link" id="btnEditBudget" onclick="event.stopPropagation();openBudgetModal();">Edit</button>
+      <button class="sec-link" id="btnEditBudget">Edit</button>
       <span class="collapse-chevron" id="chevBudget">▾</span>
     </div>
   </div>
@@ -1469,6 +1469,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('navHome').addEventListener('click',()=>switchView('home'));
   document.getElementById('navBills').addEventListener('click',()=>switchView('bills'));
   document.getElementById('btnGoToBills').addEventListener('click',()=>switchView('bills'));
+
+  // Edit budget — stop propagation so it doesn't also collapse the section
+  document.getElementById('btnEditBudget').addEventListener('click',e=>{
+    e.stopPropagation();
+    openBudgetModal();
+  });
 
   // FAB
   document.getElementById('btnFab').addEventListener('click',()=>{
