@@ -489,7 +489,10 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
   <!-- Budget at a Glance — collapsible -->
   <div class="collapsible-hdr" id="hdrBudget">
     <div class="sec-title">Budget at a Glance</div>
-    <span class="collapse-chevron" id="chevBudget">▾</span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="sec-link" id="btnEditBudget" onclick="event.stopPropagation();openBudgetModal();">Edit</button>
+      <span class="collapse-chevron" id="chevBudget">▾</span>
+    </div>
   </div>
   <div class="collapsible-body collapsed" id="bodyBudget">
     <div id="homeAllBudgets"></div>
@@ -910,15 +913,37 @@ async function loadAllFromSupabase(){
 }
 
 async function saveTx(tx,isDelete=false){
-  if(!currentUser){localSave();return;}
+  if(!currentUser){
+    // Not logged in — save locally and show warning
+    showToast('Not signed in — saved locally only');
+    localSave();return;
+  }
   setSyncState('syncing');
   try{
-    if(isDelete){await sb.from('transactions').delete().eq('id',tx.id).eq('user_id',currentUser.id);}
-    else{
-      await sb.from('transactions').upsert({id:tx.id,account:tx.account,type:tx.type,amount:tx.amount,description:tx.desc,category:tx.category,date:tx.date,period:tx.period,note:tx.note||'',user_id:currentUser.id});
+    if(isDelete){
+      const{error}=await sb.from('transactions').delete().eq('id',tx.id).eq('user_id',currentUser.id);
+      if(error)throw error;
+    } else {
+      const{error}=await sb.from('transactions').upsert({
+        id:tx.id,
+        account:tx.account,
+        type:tx.type,
+        amount:tx.amount,
+        description:tx.desc,
+        category:tx.category,
+        date:tx.date,
+        period:tx.period,
+        note:tx.note||'',
+        user_id:currentUser.id
+      },{onConflict:'id'});
+      if(error)throw error;
     }
     setSyncState('online');
-  }catch(e){console.error('Tx save error',e);setSyncState('offline');}
+  }catch(e){
+    console.error('Tx save error:',e);
+    setSyncState('offline');
+    showToast('Sync error: '+e.message);
+  }
 }
 
 async function saveBill(bill,isDelete=false){
