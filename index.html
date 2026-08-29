@@ -62,10 +62,10 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 .carryover-amt{font-family:'Playfair Display',serif;font-size:16px;color:var(--navy-deep);}
 
 /* ── SCRIPTURE ── */
-.scripture-wrap{margin:10px 16px 0;padding:10px 14px;border-radius:var(--rsm);background:var(--mist-light);border:1px solid var(--border);}
-.scripture-ref{font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--tm);margin-bottom:4px;}
-.scripture-text{font-family:'Playfair Display',serif;font-size:12px;font-style:italic;color:var(--navy-mid);line-height:1.5;}
-.scripture-text em{font-style:normal;color:var(--navy-deep);font-weight:500;}
+.scripture-wrap{margin:10px 16px 0;padding:14px 18px;border-radius:var(--r);background:var(--mist-light);border:1px solid var(--border);text-align:center;}
+.scripture-ref{font-size:9px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--tm);margin-bottom:8px;}
+.scripture-text{font-family:'Playfair Display',serif;font-size:13px;font-style:italic;color:var(--navy-mid);line-height:1.65;}
+.scripture-text em{font-style:normal;color:var(--navy-deep);font-weight:600;}
 
 /* ── SUMMARY CARD ── */
 .summary-card{margin:10px 16px 0;background:white;border-radius:var(--r);padding:16px;border:1px solid var(--border);box-shadow:var(--sh);}
@@ -73,10 +73,13 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 .balance-amt{font-family:'Playfair Display',serif;font-size:36px;font-weight:500;color:var(--navy-deep);letter-spacing:-0.01em;line-height:1;margin-bottom:12px;}
 .balance-amt.neg{color:var(--coral);}
 .stat-row{display:flex;gap:0;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--rsm);overflow:hidden;}
-.stat-item{flex:1;padding:8px 10px;border-right:1px solid var(--border);}
+.stat-item{flex:1;padding:10px 8px;border-right:1px solid var(--border);display:flex;align-items:center;gap:8px;}
 .stat-item:last-child{border-right:none;}
-.stat-lbl{font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;}
-.stat-val{font-size:13px;font-weight:600;color:var(--tp);}
+.stat-icon{width:30px;height:30px;border-radius:50%;background:var(--mist-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.stat-icon svg{width:14px;height:14px;stroke:var(--navy-mid);fill:none;stroke-width:1.8;}
+.stat-text{display:flex;flex-direction:column;gap:2px;}
+.stat-lbl{font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:0.06em;}
+.stat-val{font-size:12px;font-weight:600;color:var(--tp);}
 .prog-track{height:5px;background:var(--mist);border-radius:3px;overflow:hidden;}
 .prog-fill{height:100%;border-radius:3px;background:var(--seafoam);transition:width 0.5s;}
 .prog-fill.warn{background:var(--gold);}
@@ -111,13 +114,16 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 
 /* ── BUDGET GLANCE ── */
 .budget-glance{margin:0 16px;display:flex;flex-direction:column;gap:1px;background:var(--border);border-radius:var(--r);overflow:hidden;border:1px solid var(--border);box-shadow:var(--sh);}
-.budget-row{background:white;padding:11px 14px;}
-.budget-row-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.budget-row{background:white;padding:12px 14px;}
+.budget-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+.budget-row-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+.budget-row-icon{width:32px;height:32px;border-radius:50%;background:var(--mist-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.budget-row-icon svg{width:14px;height:14px;stroke:var(--navy-mid);fill:none;stroke-width:1.8;}
 .budget-row-name{font-size:13px;font-weight:500;color:var(--navy-deep);}
 .budget-row-note{font-size:10px;color:var(--tm);font-style:italic;margin-top:1px;}
 .budget-row-right{text-align:right;flex-shrink:0;margin-left:8px;}
-.budget-row-amts{font-size:11px;color:var(--tm);margin-bottom:1px;}
-.budget-row-rem{font-size:11px;font-weight:600;}
+.budget-row-amts{font-size:11px;color:var(--tm);margin-bottom:2px;}
+.budget-row-rem{font-size:12px;font-weight:600;}
 .budget-row-rem.ok{color:var(--seafoam-text);}
 .budget-row-rem.warn{color:var(--gold);}
 .budget-row-rem.over{color:var(--coral-text);}
@@ -629,10 +635,50 @@ function renderBillsList(){
 // ── STATS ROW ──
 function renderStats(id,income,expense,budget){
   const el=document.getElementById(id);if(!el)return;
-  el.innerHTML=`<div class="stat-item"><div class="stat-lbl">Income</div><div class="stat-val" style="color:var(--seafoam-text)">${fmt(income)}</div></div><div class="stat-item"><div class="stat-lbl">Spent</div><div class="stat-val" style="color:var(--coral-text)">${fmt(expense)}</div></div><div class="stat-item"><div class="stat-lbl">Budgeted</div><div class="stat-val">${fmt(budget)}</div></div>`;
+  el.innerHTML=`
+    <div class="stat-item">
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v1m0 8v1m-3-5c0-1.1.9-2 2-2h2a2 2 0 010 4h-2a2 2 0 000 4h2a2 2 0 002-2"/></svg></div>
+      <div class="stat-text"><div class="stat-lbl">Income</div><div class="stat-val" style="color:var(--seafoam-text)">${fmt(income)}</div></div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg></div>
+      <div class="stat-text"><div class="stat-lbl">Spent</div><div class="stat-val" style="color:var(--coral-text)">${fmt(expense)}</div></div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
+      <div class="stat-text"><div class="stat-lbl">Budgeted</div><div class="stat-val">${fmt(budget)}</div></div>
+    </div>`;
 }
 
 // ── BUDGET GLANCE ──
+// ── BUDGET GLANCE ──
+const CAT_SVG={
+  'Rent':'<path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>',
+  'Tithes':'<path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>',
+  'Groceries':'<path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>',
+  'Food':'<path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>',
+  'Eating Out':'<path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>',
+  'Fuel':'<path d="M3 5a2 2 0 012-2h10a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm9 0v6m3-3l-3 3-3-3"/>',
+  'Car Charge':'<path d="M13 10V3L4 14h7v7l9-11h-7z"/>',
+  'Tesla Car Note':'<path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path d="M13 16V6a1 1 0 00-1-1h-2a1 1 0 00-1 1v2H5l-2 5v3h2m12 0h-2V9.5M13 8h5l2 5v3h-2"/>',
+  'Mercedes Car Note':'<path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path d="M13 16V6a1 1 0 00-1-1h-2a1 1 0 00-1 1v2H5l-2 5v3h2m12 0h-2V9.5M13 8h5l2 5v3h-2"/>',
+  'Car Insurance':'<path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>',
+  'Utilities':'<path d="M13 10V3L4 14h7v7l9-11h-7z"/>',
+  'Netflix':'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/>',
+  'Shopping':'<path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>',
+  'Hair & Beauty':'<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>',
+  'Gifts':'<path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7m0 0a2 2 0 10-4 0m4 0a2 2 0 114 0"/>',
+  'Date Night':'<path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>',
+  'Medicine/Vitamins':'<path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>',
+  'Misc':'<circle cx="12" cy="12" r="9"/><path d="M12 7v1m0 8v1m-3-5c0-1.1.9-2 2-2h2a2 2 0 010 4h-2a2 2 0 000 4h2a2 2 0 002-2"/>',
+  'Personal Things':'<path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>',
+  "Sally's Allowance":'<path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>',
+  "Ray's Allowance":'<path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>',
+  'Credit Card Payment':'<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>',
+  'DEFAULT':'<circle cx="12" cy="12" r="9"/><path d="M12 7v1m0 8v1m-3-5c0-1.1.9-2 2-2h2a2 2 0 010 4h-2a2 2 0 000 4h2a2 2 0 002-2"/>',
+};
+function catSVG(cat){return CAT_SVG[cat]||CAT_SVG['DEFAULT'];}
+
 function renderBudgetGlance(listEl,txs,budgets){
   listEl.innerHTML='';
   const keys=Object.keys(budgets).filter(cat=>getBudgeted(budgets[cat])>0);
@@ -643,7 +689,18 @@ function renderBudgetGlance(listEl,txs,budgets){
     const rem=budgeted-spent;const pct=Math.min(100,(spent/budgeted)*100);
     const st=pct>=100?'over':pct>=80?'warn':'ok';
     const row=document.createElement('div');row.className='budget-row';
-    row.innerHTML=`<div class="budget-row-top"><div><div class="budget-row-name">${cat}</div>${bv.note?`<div class="budget-row-note">${bv.note}</div>`:''}</div><div class="budget-row-right"><div class="budget-row-amts">${fmt(spent)} / ${fmt(budgeted)}</div><div class="budget-row-rem ${st}">${rem>=0?fmt(rem)+' left':fmt(Math.abs(rem))+' over'}</div></div></div><div class="btrack"><div class="bfill ${st}" style="width:${pct}%"></div></div>`;
+    row.innerHTML=`
+      <div class="budget-row-top">
+        <div class="budget-row-left">
+          <div class="budget-row-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--navy-mid)" stroke-width="1.8">${catSVG(cat)}</svg></div>
+          <div><div class="budget-row-name">${cat}</div>${bv.note?`<div class="budget-row-note">${bv.note}</div>`:''}</div>
+        </div>
+        <div class="budget-row-right">
+          <div class="budget-row-amts">${fmt(spent)} / ${fmt(budgeted)}</div>
+          <div class="budget-row-rem ${st}">${rem>=0?fmt(rem)+' left':fmt(Math.abs(rem))+' over'}</div>
+        </div>
+      </div>
+      <div class="btrack"><div class="bfill ${st}" style="width:${pct}%"></div></div>`;
     listEl.appendChild(row);
   });
 }
