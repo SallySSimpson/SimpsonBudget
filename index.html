@@ -1237,7 +1237,11 @@ function renderTxList(txs,listId){
 
 // ── HOME VIEW RENDER ──
 function renderHome(){
-  document.getElementById('monthLabel').textContent=MONTHS[state.currentMonth]+' '+state.currentYear;
+  // Month label — show full date when viewing current month, just month otherwise
+  const today=new Date();
+  const isCurrentMonth=state.currentMonth===today.getMonth()&&state.currentYear===today.getFullYear();
+  const dayStr=isCurrentMonth?', '+today.toLocaleDateString('en-US',{weekday:'short'})+' '+today.getDate():'';
+  document.getElementById('monthLabel').textContent=MONTHS[state.currentMonth]+' '+state.currentYear+dayStr;
   ['periodAll','period1','period2'].forEach((id,i)=>{document.getElementById(id).className='period-btn'+(state.activePeriod===['all','1','2'][i]?' active':'');});
 
   const acct=state.activeAccount;
@@ -1294,10 +1298,32 @@ function renderHome(){
 
 // ── MONEY AT A GLANCE ──
 function renderGlanceCard(acct, txs){
-  const today=new Date();const todayDay=today.getDate();
+  const today=new Date();
+  const month=state.currentMonth;
+  const year=state.currentYear;
+
+  // Get all bills for this account
   const bills=(state.bills||[]).filter(b=>acct==='All'||b.account===acct);
-  // Bills left = bills whose day hasn't passed yet this period
-  const billsLeft=bills.filter(b=>b.day>=todayDay);
+
+  // A bill is "paid" if there's a matching expense transaction this month
+  // with the same category and similar amount
+  const monthTxs=getAllMonthTxs(acct);
+  const paidCategories=new Set(
+    monthTxs.filter(t=>t.type==='expense').map(t=>t.category)
+  );
+
+  // Bills left = bills not yet paid (no matching expense in same category this month)
+  // Also filter by current period if not "all"
+  const billsLeft=bills.filter(b=>{
+    const periodMatch=state.activePeriod==='all'||b.period===state.activePeriod;
+    const notPaid=!monthTxs.some(t=>
+      t.type==='expense'&&
+      t.category===b.category&&
+      Math.abs(t.amount-b.amount)<1// within $1 of bill amount
+    );
+    return periodMatch&&notPaid;
+  });
+
   const billsTotal=billsLeft.reduce((s,b)=>s+b.amount,0);
   const billsCount=billsLeft.length;
 
@@ -1309,10 +1335,15 @@ function renderGlanceCard(acct, txs){
   const scEl=document.getElementById('glanceBillsCount');
   const sfEl=document.getElementById('glanceSafe');
 
-  blEl.textContent=fmt(billsTotal);
-  scEl.textContent=billsCount===0?'all paid':billsCount+' bill'+(billsCount===1?'':'s')+' remaining';
-  sfEl.textContent=(safe<0?'−':'')+fmt(Math.abs(safe));
-  sfEl.className='glance-val'+(safe<0?' danger':safe<200?' warn':' good');
+  if(blEl){
+    blEl.textContent=fmt(billsTotal);
+    blEl.className='glance-val'+(billsCount===0?' good':'');
+  }
+  if(scEl)scEl.textContent=billsCount===0?'🎉 all paid this period':billsCount+' bill'+(billsCount===1?'':'s')+' remaining';
+  if(sfEl){
+    sfEl.textContent=(safe<0?'−':'')+fmt(Math.abs(safe));
+    sfEl.className='glance-val'+(safe<0?' danger':safe<200?' warn':' good');
+  }
 }
 
 // ── BUDGETS VIEW ──
