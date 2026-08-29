@@ -10,8 +10,8 @@
   --navy:#1B2B4B;--navy-deep:#0F1D33;--navy-mid:#2C4270;
   --mist:#D6E4EE;--mist-light:#EBF3F8;
   --ivory:#F8F5EF;--ivory-warm:#FDFBF7;
-  --seafoam:#7AADA0;--seafoam-lt:#B4D4CE;
-  --coral:#C4705A;--coral-lt:#F0D0C8;
+  --seafoam:#B7D8D6;--seafoam-lt:#D4ECEA;--seafoam-text:#2E7A76;
+  --coral:#ED9C8C;--coral-lt:#F7D5CE;--coral-text:#B54A35;
   --gold:#C4A55A;--gold-lt:#EDD98A;
   --tp:#1B2B4B;--ts:#5A6E8C;--tm:#8CA0B8;
   --border:#D8E4EE;
@@ -96,7 +96,7 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 .bill-name{font-size:12px;font-weight:600;color:var(--navy-deep);margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;}
 .bill-date{font-size:10px;color:var(--tm);margin-bottom:3px;}
 .bill-amount{font-size:12px;font-weight:500;color:var(--tp);}
-.bill-autopay{font-size:9px;color:var(--seafoam);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;}
+.bill-autopay{font-size:9px;color:var(--seafoam-text);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;}
 .bill-overdue{border-left:2px solid var(--coral);}
 .bill-soon{border-left:2px solid var(--gold);}
 
@@ -118,9 +118,9 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 .budget-row-right{text-align:right;flex-shrink:0;margin-left:8px;}
 .budget-row-amts{font-size:11px;color:var(--tm);margin-bottom:1px;}
 .budget-row-rem{font-size:11px;font-weight:600;}
-.budget-row-rem.ok{color:var(--seafoam);}
+.budget-row-rem.ok{color:var(--seafoam-text);}
 .budget-row-rem.warn{color:var(--gold);}
-.budget-row-rem.over{color:var(--coral);}
+.budget-row-rem.over{color:var(--coral-text);}
 .btrack{height:3px;background:var(--mist);border-radius:2px;overflow:hidden;}
 .bfill{height:100%;border-radius:2px;}
 .bfill.ok{background:var(--seafoam);}
@@ -156,8 +156,8 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 .tx-acct-badge{background:#EEF3F8;color:var(--ts);border-radius:4px;padding:1px 4px;font-size:9px;}
 .tx-right{display:flex;align-items:center;gap:4px;flex-shrink:0;}
 .tx-amount{font-size:12px;font-weight:600;}
-.tx-amount.expense{color:var(--coral);}
-.tx-amount.income{color:var(--seafoam);}
+.tx-amount.expense{color:var(--coral-text);}
+.tx-amount.income{color:var(--seafoam-text);}
 .tx-btn{background:none;border:none;cursor:pointer;color:var(--tm);padding:3px;font-size:13px;line-height:1;border-radius:4px;}
 .tx-btn:hover{color:var(--navy-mid);}
 .tx-del:hover{color:var(--coral);}
@@ -170,7 +170,7 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 .bill-left{flex:1;min-width:0;}
 .bill-item-name{font-size:13px;font-weight:500;color:var(--navy-deep);}
 .bill-item-meta{font-size:10px;color:var(--tm);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;}
-.bill-autopay-tag{color:var(--seafoam);font-weight:600;}
+.bill-autopay-tag{color:var(--seafoam-text);font-weight:600;}
 .bill-reminder-tag{color:var(--gold);}
 .bill-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .bill-right-amt{font-size:13px;font-weight:600;color:var(--tp);text-align:right;}
@@ -199,8 +199,8 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 .type-toggle{display:flex;background:var(--mist-light);border-radius:10px;padding:3px;margin-bottom:14px;border:1px solid var(--border);}
 .type-btn{flex:1;padding:8px;border:none;border-radius:7px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;cursor:pointer;background:transparent;color:var(--ts);transition:all 0.2s;}
 .type-btn.active{background:white;box-shadow:0 1px 4px rgba(27,43,75,0.1);}
-.type-btn.active.expense{color:var(--coral);}
-.type-btn.active.income{color:var(--seafoam);}
+.type-btn.active.expense{color:var(--coral-text);}
+.type-btn.active.income{color:var(--seafoam-text);}
 .form-input,.form-select{width:100%;padding:11px 13px;background:white;border:1px solid var(--border);border-radius:var(--rsm);font-family:'Inter',sans-serif;font-size:14px;color:var(--tp);appearance:none;outline:none;transition:border-color 0.2s;}
 .form-input:focus,.form-select:focus{border-color:var(--navy-mid);}
 .amount-wrap{position:relative;}
@@ -629,7 +629,7 @@ function renderBillsList(){
 // ── STATS ROW ──
 function renderStats(id,income,expense,budget){
   const el=document.getElementById(id);if(!el)return;
-  el.innerHTML=`<div class="stat-item"><div class="stat-lbl">Income</div><div class="stat-val">${fmt(income)}</div></div><div class="stat-item"><div class="stat-lbl">Spent</div><div class="stat-val">${fmt(expense)}</div></div><div class="stat-item"><div class="stat-lbl">Budgeted</div><div class="stat-val">${fmt(budget)}</div></div>`;
+  el.innerHTML=`<div class="stat-item"><div class="stat-lbl">Income</div><div class="stat-val" style="color:var(--seafoam-text)">${fmt(income)}</div></div><div class="stat-item"><div class="stat-lbl">Spent</div><div class="stat-val" style="color:var(--coral-text)">${fmt(expense)}</div></div><div class="stat-item"><div class="stat-lbl">Budgeted</div><div class="stat-val">${fmt(budget)}</div></div>`;
 }
 
 // ── BUDGET GLANCE ──
