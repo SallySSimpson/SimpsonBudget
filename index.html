@@ -4,8 +4,49 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>Simpson Budget</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
+/* ── AUTH SCREENS ── */
+.auth-screen{position:fixed;inset:0;background:var(--navy-deep);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;padding:32px 24px;}
+.auth-screen.hidden{display:none;}
+.auth-logo{font-family:'Playfair Display',serif;font-size:28px;font-weight:500;color:white;margin-bottom:4px;text-align:center;}
+.auth-tagline{font-size:10px;color:rgba(214,228,238,0.5);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:36px;text-align:center;}
+
+/* Magic link screen */
+.auth-card{background:white;border-radius:16px;padding:24px 20px;width:100%;max-width:320px;}
+.auth-card-title{font-family:'Playfair Display',serif;font-size:17px;color:var(--navy-deep);margin-bottom:6px;text-align:center;}
+.auth-card-sub{font-size:12px;color:var(--tm);text-align:center;margin-bottom:20px;line-height:1.5;}
+.auth-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--rsm);font-family:'Inter',sans-serif;font-size:15px;color:var(--tp);outline:none;margin-bottom:10px;background:var(--ivory);text-align:center;}
+.auth-input:focus{border-color:var(--navy-mid);}
+.auth-btn{width:100%;padding:13px;background:var(--navy);color:white;border:none;border-radius:var(--rsm);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;}
+.auth-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.auth-btn.secondary{background:transparent;color:var(--ts);font-weight:400;font-size:13px;margin-top:4px;}
+.auth-err{font-size:12px;color:var(--coral-text);text-align:center;margin-top:8px;min-height:16px;}
+.auth-success{text-align:center;padding:8px 0;}
+.auth-success-icon{font-size:36px;margin-bottom:10px;}
+.auth-success-text{font-size:14px;color:var(--navy-mid);line-height:1.6;}
+
+/* PIN pad screen */
+.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:36px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);transition:all 0.15s;}
+.pin-dot.filled{background:white;border-color:white;}
+.pin-dot.shake{animation:shake 0.4s ease;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}50%{transform:translateX(6px);}}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:280px;}
+.pin-key{height:68px;border-radius:50%;background:rgba(255,255,255,0.1);border:none;color:white;font-family:'Inter',sans-serif;font-size:22px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.1s;-webkit-tap-highlight-color:transparent;}
+.pin-key:active{background:rgba(255,255,255,0.25);}
+.pin-key.del{font-size:18px;}
+.pin-key.empty{background:transparent;cursor:default;}
+.pin-subtitle{font-size:12px;color:rgba(214,228,238,0.55);margin-bottom:32px;text-align:center;}
+.pin-forgot{font-size:12px;color:rgba(214,228,238,0.4);background:none;border:none;cursor:pointer;margin-top:28px;text-decoration:underline;}
+
+/* Sync dot */
+.sync-indicator{position:fixed;top:8px;right:12px;width:8px;height:8px;border-radius:50%;z-index:500;opacity:0;transition:opacity 0.3s;}
+.sync-indicator.syncing{background:var(--gold);opacity:1;animation:pulse 1s infinite;}
+.sync-indicator.online{background:var(--seafoam);opacity:1;}
+.sync-indicator.offline{background:var(--coral);opacity:1;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
 :root{
   --navy:#1B2B4B;--navy-deep:#0F1D33;--navy-mid:#2C4270;
   --mist:#D6E4EE;--mist-light:#EBF3F8;
@@ -258,6 +299,55 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 </style>
 </head>
 <body>
+
+<!-- ── MAGIC LINK SCREEN ── -->
+<div id="magicLinkScreen" class="auth-screen">
+  <div class="auth-logo">Simpson Budget</div>
+  <div class="auth-tagline">Build wealth · Give generously</div>
+  <div class="auth-card" id="mlCard">
+    <div class="auth-card-title">Welcome</div>
+    <div class="auth-card-sub">Enter your email and we'll send you a sign-in link. No password needed.</div>
+    <input type="email" id="mlEmail" class="auth-input" placeholder="your@email.com" autocomplete="email" inputmode="email"/>
+    <button class="auth-btn" id="btnSendLink">Send me a link ✉</button>
+    <div class="auth-err" id="mlErr"></div>
+  </div>
+  <div class="auth-card" id="mlSentCard" style="display:none;">
+    <div class="auth-success">
+      <div class="auth-success-icon">📬</div>
+      <div class="auth-success-text">Check your email.<br>Tap the link to sign in —<br>then come back to this app.</div>
+    </div>
+    <button class="auth-btn secondary" id="btnResend" style="margin-top:16px;">Resend link</button>
+  </div>
+</div>
+
+<!-- ── PIN PAD SCREEN ── -->
+<div id="pinScreen" class="auth-screen hidden">
+  <div class="auth-logo">Simpson Budget</div>
+  <div class="auth-tagline" id="pinGreeting">Welcome back</div>
+  <div class="pin-dots" id="pinDots">
+    <div class="pin-dot"></div><div class="pin-dot"></div>
+    <div class="pin-dot"></div><div class="pin-dot"></div>
+  </div>
+  <div class="pin-subtitle" id="pinSubtitle">Enter your PIN</div>
+  <div class="pin-grid" id="pinGrid">
+    <button class="pin-key" data-digit="1">1</button>
+    <button class="pin-key" data-digit="2">2</button>
+    <button class="pin-key" data-digit="3">3</button>
+    <button class="pin-key" data-digit="4">4</button>
+    <button class="pin-key" data-digit="5">5</button>
+    <button class="pin-key" data-digit="6">6</button>
+    <button class="pin-key" data-digit="7">7</button>
+    <button class="pin-key" data-digit="8">8</button>
+    <button class="pin-key" data-digit="9">9</button>
+    <div class="pin-key empty"></div>
+    <button class="pin-key" data-digit="0">0</button>
+    <button class="pin-key del" id="pinDel">⌫</button>
+  </div>
+  <button class="pin-forgot" id="btnForgotPin">Sign out / use email instead</button>
+</div>
+
+<!-- ── SYNC INDICATOR ── -->
+<div class="sync-indicator" id="syncDot"></div>
 <div class="app-shell">
 
 <!-- ── HEADER ── -->
@@ -291,7 +381,9 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
       <div class="app-name">Simpson Budget</div>
       <div class="app-tagline">Build wealth, give generously.</div>
     </div>
-    <div class="avatar"><span class="avatar-initials">S</span></div>
+    <div class="avatar" id="btnSignOut" title="Sign out">
+      <span class="avatar-initials" id="avatarInitial">S</span>
+    </div>
   </div>
   <div class="month-row">
     <button class="month-btn" id="btnPrev">‹</button>
@@ -473,13 +565,176 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 (function(){
 'use strict';
 
+// ── SUPABASE ──
+const SUPA_URL='https://szfmhjxemxfrsvpwudsd.supabase.co';
+const SUPA_KEY='sb_publishable_WFDK6oGkzwgKR6Cu1aSIbw_8I5Gmb3W';
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+let currentUser=null;
+
+// ── SYNC DOT ──
+const syncDot=document.getElementById('syncDot');
+function setSyncState(s){syncDot.className='sync-indicator '+s;}
+
+// ── PIN STORAGE (per device, in localStorage) ──
+const PIN_KEY='sb_pin';
+function getStoredPin(){return localStorage.getItem(PIN_KEY);}
+function storePin(pin){localStorage.setItem(PIN_KEY,pin);}
+function clearPin(){localStorage.removeItem(PIN_KEY);}
+
+// ── AUTH FLOW ──
+async function initAuth(){
+  // Check for magic link token in URL (when returning from email link)
+  const hash=window.location.hash;
+  if(hash&&hash.includes('access_token')){
+    const{data:{session},error}=await sb.auth.getSession();
+    if(session){
+      window.history.replaceState(null,'',window.location.pathname);
+      await handleSession(session);return;
+    }
+  }
+  const{data:{session}}=await sb.auth.getSession();
+  if(session){await handleSession(session);}
+  else{showMagicLink();}
+
+  sb.auth.onAuthStateChange(async(_,session)=>{
+    if(session){await handleSession(session);}
+    else{showMagicLink();}
+  });
+}
+
+async function handleSession(session){
+  currentUser=session.user;
+  const hasPin=getStoredPin();
+  if(hasPin){showPinEntry();}
+  else{showPinSetup();}
+}
+
+// ── MAGIC LINK SCREEN ──
+function showMagicLink(){
+  document.getElementById('magicLinkScreen').classList.remove('hidden');
+  document.getElementById('pinScreen').classList.add('hidden');
+  document.querySelector('.app-shell').style.display='none';
+  setSyncState('offline');
+}
+
+// ── PIN SCREENS ──
+let pinMode='enter'; // 'enter' | 'setup' | 'confirm'
+let pinSetupFirst='';
+let pinEntry='';
+
+function showPinEntry(){
+  document.getElementById('magicLinkScreen').classList.add('hidden');
+  document.getElementById('pinScreen').classList.remove('hidden');
+  document.querySelector('.app-shell').style.display='none';
+  pinMode='enter'; pinEntry='';
+  const email=currentUser?.email||'';
+  const name=email.split('@')[0];
+  document.getElementById('pinGreeting').textContent='Welcome back, '+name.charAt(0).toUpperCase()+name.slice(1);
+  document.getElementById('pinSubtitle').textContent='Enter your PIN';
+  renderPinDots();
+}
+
+function showPinSetup(){
+  document.getElementById('magicLinkScreen').classList.add('hidden');
+  document.getElementById('pinScreen').classList.remove('hidden');
+  document.querySelector('.app-shell').style.display='none';
+  pinMode='setup'; pinEntry=''; pinSetupFirst='';
+  document.getElementById('pinGreeting').textContent='Almost there!';
+  document.getElementById('pinSubtitle').textContent='Create a 4-digit PIN';
+  renderPinDots();
+}
+
+function renderPinDots(){
+  const dots=document.querySelectorAll('.pin-dot');
+  dots.forEach((d,i)=>{d.className='pin-dot'+(i<pinEntry.length?' filled':'');});
+}
+
+function handlePinDigit(d){
+  if(pinEntry.length>=4)return;
+  pinEntry+=d;
+  renderPinDots();
+  if(pinEntry.length===4){setTimeout(()=>processPinComplete(),120);}
+}
+
+function handlePinDelete(){
+  if(!pinEntry.length)return;
+  pinEntry=pinEntry.slice(0,-1);
+  renderPinDots();
+}
+
+function shakeDots(){
+  const dots=document.querySelectorAll('.pin-dot');
+  dots.forEach(d=>d.classList.add('shake'));
+  setTimeout(()=>dots.forEach(d=>d.classList.remove('shake')),400);
+}
+
+function processPinComplete(){
+  if(pinMode==='enter'){
+    if(pinEntry===getStoredPin()){enterApp();}
+    else{shakeDots();pinEntry='';renderPinDots();document.getElementById('pinSubtitle').textContent='Incorrect PIN — try again';}
+  } else if(pinMode==='setup'){
+    pinSetupFirst=pinEntry; pinEntry=''; pinMode='confirm';
+    document.getElementById('pinSubtitle').textContent='Confirm your PIN';
+    renderPinDots();
+  } else if(pinMode==='confirm'){
+    if(pinEntry===pinSetupFirst){storePin(pinEntry);enterApp();}
+    else{shakeDots();pinEntry='';renderPinDots();document.getElementById('pinSubtitle').textContent='PINs didn\'t match — try again';pinMode='setup';pinSetupFirst='';}
+  }
+}
+
+async function enterApp(){
+  document.getElementById('pinScreen').classList.add('hidden');
+  document.querySelector('.app-shell').style.display='flex';
+  const initial=(currentUser.email||'S')[0].toUpperCase();
+  document.getElementById('avatarInitial').textContent=initial;
+  setSyncState('online');
+  await loadAllFromSupabase();
+  subscribeRealtime();
+}
+
+// ── EVENT WIRING (runs after DOMContentLoaded) ──
+document.addEventListener('DOMContentLoaded',()=>{
+
+  // Magic link send
+  document.getElementById('btnSendLink').addEventListener('click',async()=>{
+    const email=document.getElementById('mlEmail').value.trim();
+    const errEl=document.getElementById('mlErr');
+    const btn=document.getElementById('btnSendLink');
+    errEl.textContent='';
+    if(!email||!email.includes('@')){errEl.textContent='Enter a valid email address.';return;}
+    btn.disabled=true;btn.textContent='Sending...';
+    const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.href}});
+    btn.disabled=false;btn.textContent='Send me a link ✉';
+    if(error){errEl.textContent=error.message;}
+    else{document.getElementById('mlCard').style.display='none';document.getElementById('mlSentCard').style.display='block';}
+  });
+  document.getElementById('mlEmail').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btnSendLink').click();});
+  document.getElementById('btnResend').addEventListener('click',()=>{document.getElementById('mlCard').style.display='block';document.getElementById('mlSentCard').style.display='none';});
+
+  // PIN pad
+  document.getElementById('pinGrid').addEventListener('click',e=>{
+    const btn=e.target.closest('.pin-key');if(!btn)return;
+    const d=btn.dataset.digit;if(d!==undefined)handlePinDigit(d);
+  });
+  document.getElementById('pinDel').addEventListener('click',handlePinDelete);
+  document.getElementById('btnForgotPin').addEventListener('click',async()=>{
+    clearPin();await sb.auth.signOut();state=JSON.parse(JSON.stringify(DEFAULT));showMagicLink();
+  });
+
+  // Avatar = sign out
+  document.getElementById('btnSignOut').addEventListener('click',async()=>{
+    if(!confirm('Sign out?'))return;
+    clearPin();await sb.auth.signOut();state=JSON.parse(JSON.stringify(DEFAULT));
+  });
+
+  initAuth();
+});
+
 // ── CONSTANTS ──
 const PIE_COLORS=['#1B2B4B','#2C4270','#4A6890','#7AADA0','#B4D4CE','#C4A55A','#EDD98A','#8CA0B8','#3A5878','#D6E4EE','#C4705A','#5A6E8C','#A0C0B8'];
 const INCOME_CATS=['Salary','Paycheck','Allowance from Joint','Refund','Gift','Bonus','Misc','Other'];
 const EXPENSE_CATS=['Rent','Tesla Car Note','Mercedes Car Note','Car Insurance','Tithes','Groceries','Food','Eating Out',"Sally's Allowance","Ray's Allowance",'Utilities','Medicine/Vitamins','Fuel','Car Charge','Personal Things','Shopping','Gifts','Misc','Credit Card Payment','Date Night','Toll','Netflix','Subscriptions','Hair & Beauty','Phone Bill','Internet','Other'];
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-const SK='simpsonBudget_v6';
-let _mem=null;
 
 const DEFAULT={
   accounts:['Simpson Joint','Sally Personal','Ray Personal'],
@@ -522,21 +777,153 @@ const DEFAULT={
     {id:'t17',account:'Ray Personal',type:'expense',amount:28,desc:'Car charge',category:'Car Charge',date:'2026-06-14',period:'1',note:''}
   ]
 };
+let state=JSON.parse(JSON.stringify(DEFAULT));
+async function loadAllFromSupabase(){
+  if(!currentUser)return;
+  setSyncState('syncing');
+  try{
+    const uid=currentUser.id;
+    const[{data:txData},{data:billData},{data:budgetData},{data:ruleData},{data:settingsData}]=await Promise.all([
+      sb.from('transactions').select('*').eq('user_id',uid),
+      sb.from('bills').select('*').eq('user_id',uid),
+      sb.from('budgets').select('*').eq('user_id',uid),
+      sb.from('category_rules').select('*').eq('user_id',uid),
+      sb.from('settings').select('*').eq('user_id',uid),
+    ]);
 
-function save(){try{localStorage.setItem(SK,JSON.stringify(state));}catch(e){_mem=JSON.stringify(state);}}
-function load(){
-  try{const s=localStorage.getItem(SK);if(s){const p=JSON.parse(s);
-    if(!p.allowanceLinks)p.allowanceLinks=DEFAULT.allowanceLinks;
-    if(!p.extraCategories)p.extraCategories=[];
-    if(!p.carryover)p.carryover=DEFAULT.carryover;
-    if(!p.categoryRules)p.categoryRules={};
-    if(!p.bills)p.bills=DEFAULT.bills;
-    return p;
-  }}catch(e){}
-  if(_mem){try{return JSON.parse(_mem);}catch(e){}}
-  return JSON.parse(JSON.stringify(DEFAULT));
+    // Map transactions
+    if(txData&&txData.length){
+      state.transactions=txData.map(r=>({id:r.id,account:r.account,type:r.type,amount:parseFloat(r.amount),desc:r.description,category:r.category,date:r.date,period:r.period,note:r.note||''}));
+    }
+    // Map bills
+    if(billData&&billData.length){
+      state.bills=billData.map(r=>({id:r.id,name:r.name,amount:parseFloat(r.amount),day:r.day,account:r.account,period:r.period,category:r.category,autopay:r.autopay,reminder:r.reminder}));
+    }
+    // Map budgets
+    if(budgetData&&budgetData.length){
+      state.budgets={'Simpson Joint':{},'Sally Personal':{},'Ray Personal':{}};
+      budgetData.forEach(r=>{
+        if(!state.budgets[r.account])state.budgets[r.account]={};
+        state.budgets[r.account][r.category]={p1:parseFloat(r.p1_amount||0),p2:parseFloat(r.p2_amount||0),note:r.note||''};
+      });
+    }
+    // Map category rules
+    if(ruleData&&ruleData.length){
+      state.categoryRules={};
+      ruleData.forEach(r=>{state.categoryRules[r.keyword]=r.category;});
+    }
+    // Map settings (carryover, extraCategories)
+    if(settingsData&&settingsData.length){
+      settingsData.forEach(r=>{
+        if(r.key==='carryover')state.carryover=r.value;
+        if(r.key==='extraCategories')state.extraCategories=r.value;
+        if(r.key==='uiState'){
+          state.activeAccount=r.value.activeAccount||'All';
+          state.activePeriod=r.value.activePeriod||'all';
+          state.currentMonth=r.value.currentMonth!=null?r.value.currentMonth:new Date().getMonth();
+          state.currentYear=r.value.currentYear||new Date().getFullYear();
+          state.activeView=r.value.activeView||'home';
+        }
+      });
+    }
+    setSyncState('online');
+    renderAll();
+    const validView=['home','bills'].includes(state.activeView)?state.activeView:'home';
+    switchView(validView);
+  }catch(e){console.error('Load error',e);setSyncState('offline');renderAll();}
 }
-let state=load();
+
+async function saveTx(tx,isDelete=false){
+  if(!currentUser){localSave();return;}
+  setSyncState('syncing');
+  try{
+    if(isDelete){await sb.from('transactions').delete().eq('id',tx.id).eq('user_id',currentUser.id);}
+    else{
+      await sb.from('transactions').upsert({id:tx.id,account:tx.account,type:tx.type,amount:tx.amount,description:tx.desc,category:tx.category,date:tx.date,period:tx.period,note:tx.note||'',user_id:currentUser.id});
+    }
+    setSyncState('online');
+  }catch(e){console.error('Tx save error',e);setSyncState('offline');}
+}
+
+async function saveBill(bill,isDelete=false){
+  if(!currentUser){return;}
+  setSyncState('syncing');
+  try{
+    if(isDelete){await sb.from('bills').delete().eq('id',bill.id).eq('user_id',currentUser.id);}
+    else{await sb.from('bills').upsert({id:bill.id,name:bill.name,amount:bill.amount,day:bill.day,account:bill.account,period:bill.period,category:bill.category,autopay:bill.autopay,reminder:bill.reminder,user_id:currentUser.id});}
+    setSyncState('online');
+  }catch(e){console.error('Bill save error',e);setSyncState('offline');}
+}
+
+async function saveBudgets(account){
+  if(!currentUser)return;
+  setSyncState('syncing');
+  try{
+    const budgets=state.budgets[account]||{};
+    const upserts=Object.entries(budgets).map(([cat,bv])=>({account,category:cat,p1_amount:bv.p1||0,p2_amount:bv.p2||0,note:bv.note||'',user_id:currentUser.id}));
+    if(upserts.length){
+      // Delete old rows for this account then reinsert
+      await sb.from('budgets').delete().eq('account',account).eq('user_id',currentUser.id);
+      await sb.from('budgets').insert(upserts);
+    }
+    setSyncState('online');
+  }catch(e){console.error('Budget save error',e);setSyncState('offline');}
+}
+
+async function saveSetting(key,value){
+  if(!currentUser)return;
+  try{await sb.from('settings').upsert({key,value,user_id:currentUser.id,updated_at:new Date().toISOString()});}
+  catch(e){console.error('Setting save error',e);}
+}
+
+async function saveCategoryRule(keyword,category){
+  if(!currentUser)return;
+  try{await sb.from('category_rules').upsert({keyword,category,user_id:currentUser.id});}
+  catch(e){console.error('Rule save error',e);}
+}
+
+async function saveUIState(){
+  await saveSetting('uiState',{activeAccount:state.activeAccount,activePeriod:state.activePeriod,currentMonth:state.currentMonth,currentYear:state.currentYear,activeView:state.activeView});
+}
+
+// LocalStorage fallback (used before login or on error)
+function localSave(){try{localStorage.setItem('simpsonBudget_local',JSON.stringify(state));}catch(e){}}
+
+// ── REALTIME SUBSCRIPTION ──
+let realtimeChannel=null;
+function subscribeRealtime(){
+  if(realtimeChannel)realtimeChannel.unsubscribe();
+  realtimeChannel=sb.channel('budget-sync')
+    .on('postgres_changes',{event:'*',schema:'public',table:'transactions',filter:`user_id=eq.${currentUser.id}`},()=>{loadAllFromSupabase();})
+    .on('postgres_changes',{event:'*',schema:'public',table:'bills',filter:`user_id=eq.${currentUser.id}`},()=>{loadAllFromSupabase();})
+    .on('postgres_changes',{event:'*',schema:'public',table:'budgets',filter:`user_id=eq.${currentUser.id}`},()=>{loadAllFromSupabase();})
+    .subscribe();
+}
+
+// ── MIGRATION: push localStorage data to Supabase ──
+async function migrateLocalData(){
+  try{
+    const local=localStorage.getItem('simpsonBudget_v6')||localStorage.getItem('simpsonBudget_v5')||localStorage.getItem('simpsonBudget_local');
+    if(!local||!currentUser)return;
+    const old=JSON.parse(local);
+    if(!old.transactions||!old.transactions.length)return;
+    const count=old.transactions.length;
+    if(!confirm(`Found ${count} transactions in local storage. Migrate to Supabase?`))return;
+    setSyncState('syncing');
+    for(const tx of old.transactions){await saveTx(tx);}
+    if(old.bills)for(const b of old.bills){await saveBill(b);}
+    for(const acc of['Simpson Joint','Sally Personal','Ray Personal']){
+      if(old.budgets&&old.budgets[acc]){state.budgets[acc]=old.budgets[acc];await saveBudgets(acc);}
+    }
+    if(old.categoryRules){for(const[k,v]of Object.entries(old.categoryRules)){await saveCategoryRule(k,v);}}
+    if(old.carryover)await saveSetting('carryover',old.carryover);
+    if(old.extraCategories)await saveSetting('extraCategories',old.extraCategories);
+    localStorage.removeItem('simpsonBudget_v6');localStorage.removeItem('simpsonBudget_v5');localStorage.removeItem('simpsonBudget_local');
+    setSyncState('online');
+    showToast(`✓ Migrated ${count} transactions to Supabase`);
+    await loadAllFromSupabase();
+  }catch(e){console.error('Migration error',e);setSyncState('offline');}
+}
 
 const fmt=n=>'$'+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 const showToast=msg=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);};
@@ -629,7 +1016,7 @@ function renderBillsList(){
     el.appendChild(item);
   });
   el.querySelectorAll('[title="Edit bill"]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openEditBill(btn.dataset.id);}));
-  el.querySelectorAll('[title="Delete bill"]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();state.bills=(state.bills||[]).filter(b=>b.id!==btn.dataset.id);save();renderBillsList();showToast('Bill removed');}));
+  el.querySelectorAll('[title="Delete bill"]').forEach(btn=>btn.addEventListener('click',async e=>{e.stopPropagation();const bill=(state.bills||[]).find(b=>b.id===btn.dataset.id);state.bills=(state.bills||[]).filter(b=>b.id!==btn.dataset.id);if(bill)await saveBill(bill,true);renderBillsList();showToast('Bill removed');}));
 }
 
 // ── STATS ROW ──
@@ -737,7 +1124,7 @@ function renderTxList(txs,listId){
     list.appendChild(item);
   });
   list.querySelectorAll('[title="Edit"]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openEditTx(btn.dataset.id);}));
-  list.querySelectorAll('[title="Delete"]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();state.transactions=state.transactions.filter(t=>t.id!==btn.dataset.id);save();renderAll();showToast('Transaction removed');}));
+  list.querySelectorAll('[title="Delete"]').forEach(btn=>btn.addEventListener('click',async e=>{e.stopPropagation();const tx=state.transactions.find(t=>t.id===btn.dataset.id);state.transactions=state.transactions.filter(t=>t.id!==btn.dataset.id);if(tx)await saveTx(tx,true);renderAll();showToast('Transaction removed');}));
 }
 
 // ── HOME VIEW RENDER ──
@@ -826,7 +1213,7 @@ function renderAccountTabs(){
 
 // ── NAV ──
 function switchView(view){
-  state.activeView=view;save();
+  state.activeView=view;saveUIState();
   ['home','bills'].forEach(v=>{
     document.getElementById('view'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',v===view);
     document.getElementById('nav'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',v===view);
@@ -928,28 +1315,33 @@ function buildBudgetRow(list,cat,bv){
   row.innerHTML=`<div class="budget-edit-row-top"><span class="budget-edit-name">${cat}</span><div style="display:flex;align-items:center;gap:5px;">${isExtra?`<button class="cat-delete-btn" data-cat="${cat}">×</button>`:''}<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;"><div style="font-size:10px;color:var(--tm);">P1 · P2</div><div style="display:flex;gap:4px;"><input type="number" class="budget-edit-input" data-cat="${cat}" data-p="p1" value="${bv.p1||''}" placeholder="P1"/><input type="number" class="budget-edit-input" data-cat="${cat}" data-p="p2" value="${bv.p2||''}" placeholder="P2"/></div></div></div></div><input type="text" class="budget-note-input" data-cat="${cat}" value="${(bv.note||'').replace(/"/g,'&quot;')}" placeholder="Note (optional)"/>`;
   list.appendChild(row);
   const del=row.querySelector('.cat-delete-btn');
-  if(del)del.addEventListener('click',()=>{state.extraCategories=(state.extraCategories||[]).filter(c=>c!==cat);const acct=state.activeAccount==='All'?'Simpson Joint':state.activeAccount;if(state.budgets[acct])delete state.budgets[acct][cat];save();row.remove();showToast(`"${cat}" removed`);});
+  if(del)del.addEventListener('click',async()=>{
+    state.extraCategories=(state.extraCategories||[]).filter(c=>c!==cat);
+    const acct=state.activeAccount==='All'?'Simpson Joint':state.activeAccount;
+    if(state.budgets[acct])delete state.budgets[acct][cat];
+    await saveSetting('extraCategories',state.extraCategories);
+    await saveBudgets(acct);
+    row.remove();showToast(`"${cat}" removed`);
+  });
 }
 
 // ── EVENT LISTENERS ──
 document.addEventListener('DOMContentLoaded',()=>{
   // Month nav
-  document.getElementById('btnPrev').addEventListener('click',()=>{state.currentMonth--;if(state.currentMonth<0){state.currentMonth=11;state.currentYear--;}save();renderAll();});
-  document.getElementById('btnNext').addEventListener('click',()=>{state.currentMonth++;if(state.currentMonth>11){state.currentMonth=0;state.currentYear++;}save();renderAll();});
+  document.getElementById('btnPrev').addEventListener('click',()=>{state.currentMonth--;if(state.currentMonth<0){state.currentMonth=11;state.currentYear--;}saveUIState();renderAll();});
+  document.getElementById('btnNext').addEventListener('click',()=>{state.currentMonth++;if(state.currentMonth>11){state.currentMonth=0;state.currentYear++;}saveUIState();renderAll();});
 
-  // Period buttons (home)
-  document.getElementById('periodAll').addEventListener('click',()=>{state.activePeriod='all';save();renderAll();});
-  document.getElementById('period1').addEventListener('click',()=>{state.activePeriod='1';save();renderAll();});
-  document.getElementById('period2').addEventListener('click',()=>{state.activePeriod='2';save();renderAll();});
-
-
+  // Period buttons
+  document.getElementById('periodAll').addEventListener('click',()=>{state.activePeriod='all';saveUIState();renderAll();});
+  document.getElementById('period1').addEventListener('click',()=>{state.activePeriod='1';saveUIState();renderAll();});
+  document.getElementById('period2').addEventListener('click',()=>{state.activePeriod='2';saveUIState();renderAll();});
 
   // Bottom nav
   document.getElementById('navHome').addEventListener('click',()=>switchView('home'));
   document.getElementById('navBills').addEventListener('click',()=>switchView('bills'));
   document.getElementById('btnGoToBills').addEventListener('click',()=>switchView('bills'));
 
-  // FAB — context-aware
+  // FAB
   document.getElementById('btnFab').addEventListener('click',()=>{
     if(state.activeView==='bills')openAddBill();
     else openAddTx();
@@ -958,18 +1350,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Tx type toggle
   document.getElementById('typeExp').addEventListener('click',()=>setTxTypeUI('expense'));
   document.getElementById('typeInc').addEventListener('click',()=>setTxTypeUI('income'));
-
-  // Tx period chips
   document.getElementById('chipP1').addEventListener('click',()=>setTxChip('1'));
   document.getElementById('chipP2').addEventListener('click',()=>setTxChip('2'));
   document.getElementById('txDate').addEventListener('change',function(){setTxChip(parseInt(this.value.split('-')[2])<=15?'1':'2');});
-
-  // Autocomplete on description
   document.getElementById('txDesc').addEventListener('input',function(){updateAutocomplete(this.value);});
   document.getElementById('txDesc').addEventListener('blur',()=>setTimeout(()=>{document.getElementById('acList').style.display='none';},150));
 
-  // Save transaction
-  document.getElementById('btnSaveTx').addEventListener('click',()=>{
+  // Save transaction — Supabase
+  document.getElementById('btnSaveTx').addEventListener('click',async()=>{
     const amount=parseFloat(document.getElementById('txAmt').value);
     const desc=document.getElementById('txDesc').value.trim();
     const category=document.getElementById('txCat').value;
@@ -979,28 +1367,36 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!amount||amount<=0){showToast('Enter a valid amount');return;}
     if(!desc){showToast('Add a description');return;}
     if(!date){showToast('Pick a date');return;}
-    // Save category rule
     const key=desc.toLowerCase().trim();
-    if(key&&category){if(!state.categoryRules)state.categoryRules={};state.categoryRules[key]=category;}
+    if(key&&category){
+      if(!state.categoryRules)state.categoryRules={};
+      state.categoryRules[key]=category;
+      saveCategoryRule(key,category);
+    }
+    let tx;
     if(editingTxId){
       const idx=state.transactions.findIndex(t=>t.id===editingTxId);
-      if(idx>-1)state.transactions[idx]={...state.transactions[idx],type:txType,amount,desc,category,account,date,period:txPeriod,note};
+      tx={...state.transactions[idx],type:txType,amount,desc,category,account,date,period:txPeriod,note};
+      if(idx>-1)state.transactions[idx]=tx;
       showToast('Transaction updated ✓');
     }else{
-      state.transactions.push({id:'t'+Date.now(),account,type:txType,amount,desc,category,date,period:txPeriod,note});
+      tx={id:'t'+Date.now(),account,type:txType,amount,desc,category,date,period:txPeriod,note};
+      state.transactions.push(tx);
       showToast('Transaction saved ✓');
     }
-    save();document.getElementById('addTxModal').classList.remove('open');renderAll();
+    await saveTx(tx);
+    document.getElementById('addTxModal').classList.remove('open');
+    renderAll();
   });
   document.getElementById('btnCancelTx').addEventListener('click',()=>document.getElementById('addTxModal').classList.remove('open'));
 
-  // Bill period chips
+  // Bill chips
   document.getElementById('billChipP1').addEventListener('click',()=>setBillChip('1'));
   document.getElementById('billChipP2').addEventListener('click',()=>setBillChip('2'));
   document.getElementById('btnAddBill').addEventListener('click',openAddBill);
 
-  // Save bill
-  document.getElementById('btnSaveBill').addEventListener('click',()=>{
+  // Save bill — Supabase
+  document.getElementById('btnSaveBill').addEventListener('click',async()=>{
     const name=document.getElementById('billName').value.trim();
     const amount=parseFloat(document.getElementById('billAmt').value);
     const day=parseInt(document.getElementById('billDay').value);
@@ -1012,49 +1408,77 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!amount||amount<=0){showToast('Enter a valid amount');return;}
     if(!day||day<1||day>31){showToast('Enter a valid day (1–31)');return;}
     if(!state.bills)state.bills=[];
+    let bill;
     if(editingBillId){
       const idx=state.bills.findIndex(b=>b.id===editingBillId);
-      if(idx>-1)state.bills[idx]={...state.bills[idx],name,amount,day,account,period:billPeriod,category,autopay,reminder};
+      bill={...state.bills[idx],name,amount,day,account,period:billPeriod,category,autopay,reminder};
+      if(idx>-1)state.bills[idx]=bill;
       showToast('Bill updated ✓');
     }else{
-      state.bills.push({id:'b'+Date.now(),name,amount,day,account,period:billPeriod,category,autopay,reminder});
+      bill={id:'b'+Date.now(),name,amount,day,account,period:billPeriod,category,autopay,reminder};
+      state.bills.push(bill);
       showToast('Bill saved ✓');
     }
-    save();document.getElementById('addBillModal').classList.remove('open');renderBillsList();renderUpcomingMini();
+    await saveBill(bill);
+    document.getElementById('addBillModal').classList.remove('open');
+    renderBillsList();renderUpcomingMini();
   });
   document.getElementById('btnCancelBill').addEventListener('click',()=>document.getElementById('addBillModal').classList.remove('open'));
 
   // Add category
-  document.getElementById('btnAddCat').addEventListener('click',()=>{
+  document.getElementById('btnAddCat').addEventListener('click',async()=>{
     const nameEl=document.getElementById('newCatName');const name=nameEl.value.trim();
     if(!name){showToast('Enter a category name');return;}
     if([...EXPENSE_CATS,...(state.extraCategories||[])].includes(name)){showToast('Already exists');return;}
-    if(!state.extraCategories)state.extraCategories=[];state.extraCategories.push(name);save();nameEl.value='';
+    if(!state.extraCategories)state.extraCategories=[];
+    state.extraCategories.push(name);
+    await saveSetting('extraCategories',state.extraCategories);
+    nameEl.value='';
     const list=document.getElementById('budgetEditList');const addSec=document.getElementById('budgetModal').querySelector('div[style*="margin-top"]');
     const dummy=document.createElement('div');list.insertBefore(dummy,addSec);buildBudgetRow(list,name,{p1:0,p2:0,note:''});
     const nr=list.lastElementChild;list.insertBefore(nr,addSec);list.removeChild(dummy);
     showToast(`"${name}" added`);
   });
 
-  // Save budget
-  document.getElementById('btnSaveBudget').addEventListener('click',()=>{
+  // Save budget — Supabase
+  document.getElementById('btnSaveBudget').addEventListener('click',async()=>{
     const acct=state.activeAccount==='All'?'Simpson Joint':state.activeAccount;
     if(!state.budgets[acct])state.budgets[acct]={};
     if(!state.carryover[acct])state.carryover[acct]={};
     state.carryover[acct].p1ToP2=document.getElementById('carryP1P2').checked;
     state.carryover[acct].p2ToNext=document.getElementById('carryP2Next').checked;
-    document.querySelectorAll('#budgetEditList .budget-edit-input').forEach(inp=>{const cat=inp.dataset.cat;const p=inp.dataset.p;const val=parseFloat(inp.value)||0;if(!state.budgets[acct][cat])state.budgets[acct][cat]={p1:0,p2:0,note:''};state.budgets[acct][cat][p]=val;});
-    document.querySelectorAll('#budgetEditList .budget-note-input').forEach(inp=>{const cat=inp.dataset.cat;if(!state.budgets[acct][cat])state.budgets[acct][cat]={p1:0,p2:0,note:''};state.budgets[acct][cat].note=inp.value.trim();});
-    save();document.getElementById('budgetModal').classList.remove('open');renderAll();showToast('Budget saved ✓');
+    document.querySelectorAll('#budgetEditList .budget-edit-input').forEach(inp=>{
+      const cat=inp.dataset.cat;const p=inp.dataset.p;const val=parseFloat(inp.value)||0;
+      if(!state.budgets[acct][cat])state.budgets[acct][cat]={p1:0,p2:0,note:''};
+      state.budgets[acct][cat][p]=val;
+    });
+    document.querySelectorAll('#budgetEditList .budget-note-input').forEach(inp=>{
+      const cat=inp.dataset.cat;
+      if(!state.budgets[acct][cat])state.budgets[acct][cat]={p1:0,p2:0,note:''};
+      state.budgets[acct][cat].note=inp.value.trim();
+    });
+    await saveBudgets(acct);
+    await saveSetting('carryover',state.carryover);
+    document.getElementById('budgetModal').classList.remove('open');
+    renderAll();showToast('Budget saved ✓');
   });
   document.getElementById('btnCancelBudget').addEventListener('click',()=>document.getElementById('budgetModal').classList.remove('open'));
+
+  // Delete tx wired via renderTxList, delete bill wired via renderBillsList
+  // Migration button (shown if old local data exists)
+  const hasLocal=localStorage.getItem('simpsonBudget_v6')||localStorage.getItem('simpsonBudget_v5');
+  if(hasLocal){
+    const migrateBtn=document.createElement('button');
+    migrateBtn.style.cssText='position:fixed;bottom:80px;left:16px;background:var(--gold);color:var(--navy-deep);border:none;border-radius:20px;padding:8px 14px;font-size:11px;font-weight:600;cursor:pointer;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
+    migrateBtn.textContent='↑ Migrate local data';
+    migrateBtn.addEventListener('click',()=>{migrateLocalData();migrateBtn.remove();});
+    document.body.appendChild(migrateBtn);
+  }
 
   // Close modals on overlay tap
   document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
 
-  // Restore view (only home or bills are valid now)
-  const validView=['home','bills'].includes(state.activeView)?state.activeView:'home';
-  switchView(validView);
+  // Render skeleton while waiting for auth
   renderAll();
 });
 })();
