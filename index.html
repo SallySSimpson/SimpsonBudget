@@ -214,6 +214,8 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 .bill-item{background:white;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;}
 .bill-item.overdue{border-left:3px solid var(--coral);}
 .bill-item.due-soon{border-left:3px solid var(--gold);}
+.bill-item.paid-item{border-left:3px solid var(--seafoam);opacity:0.75;}
+.bill-card.bill-paid{border-left:2px solid var(--seafoam);opacity:0.75;}
 .bill-left{flex:1;min-width:0;}
 .bill-item-name{font-size:13px;font-weight:500;color:var(--navy-deep);}
 .bill-item-meta{font-size:10px;color:var(--tm);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;}
@@ -1042,21 +1044,33 @@ function getAllMonthTxs(account){return state.transactions.filter(tx=>{const d=n
 function getBudgeted(bv,period){if((period||state.activePeriod)==='all')return(bv.p1||0)+(bv.p2||0);if((period||state.activePeriod)==='1')return bv.p1||0;return bv.p2||0;}
 
 function getCarryover(account){
-  const co=state.carryover[account];if(!co)return 0;let carry=0;
+  // For All view, sum carryover across all accounts
+  if(account==='All'){
+    return state.accounts.reduce((s,acc)=>s+getCarryover(acc),0);
+  }
+  const co=state.carryover[account];if(!co)return 0;
+  let carry=0;
   if(state.activePeriod==='2'&&co.p1ToP2){
-    const p1=state.transactions.filter(tx=>{const d=new Date(tx.date+'T12:00:00');return tx.account===account&&d.getMonth()===state.currentMonth&&d.getFullYear()===state.currentYear&&tx.period==='1';});
+    const p1=state.transactions.filter(tx=>{
+      const d=new Date(tx.date+'T12:00:00');
+      return tx.account===account&&d.getMonth()===state.currentMonth&&d.getFullYear()===state.currentYear&&tx.period==='1';
+    });
     const inc=p1.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
     const exp=p1.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-    const bud=Object.values(state.budgets[account]||{}).reduce((s,bv)=>s+(bv.p1||0),0);
-    carry=Math.max(0,Math.min(bud,inc)-exp);
+    // Allow negative — if overspent in P1 that deficit carries into P2
+    carry=inc-exp;
   }
   if(state.activePeriod==='1'&&co.p2ToNext){
-    let pm=state.currentMonth-1,py=state.currentYear;if(pm<0){pm=11;py--;}
-    const p2=state.transactions.filter(tx=>{const d=new Date(tx.date+'T12:00:00');return tx.account===account&&d.getMonth()===pm&&d.getFullYear()===py&&tx.period==='2';});
+    let pm=state.currentMonth-1,py=state.currentYear;
+    if(pm<0){pm=11;py--;}
+    const p2=state.transactions.filter(tx=>{
+      const d=new Date(tx.date+'T12:00:00');
+      return tx.account===account&&d.getMonth()===pm&&d.getFullYear()===py&&tx.period==='2';
+    });
     const inc=p2.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
     const exp=p2.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-    const bud=Object.values(state.budgets[account]||{}).reduce((s,bv)=>s+(bv.p2||0),0);
-    carry=Math.max(0,Math.min(bud,inc)-exp);
+    // Allow negative carryover
+    carry=inc-exp;
   }
   return carry;
 }
@@ -1087,11 +1101,21 @@ function drawPie(txs,canvasId,legendId){
   if(legEl)legEl.innerHTML=entries.slice(0,7).map(([cat,val],i)=>`<div class="legend-row"><div class="leg-name"><span class="leg-dot" style="background:${PIE_COLORS[i%PIE_COLORS.length]}"></span>${cat}</div><span class="leg-pct">${Math.round((val/total)*100)}%</span></div>`).join('');
 }
 
+// ── BILL PAID DETECTION ──
+// A bill is paid if there's a matching expense this month with same category within $1
+function isBillPaid(bill){
+  const monthTxs=getAllMonthTxs(bill.account);
+  return monthTxs.some(t=>
+    t.type==='expense' &&
+    t.category===bill.category &&
+    Math.abs(t.amount-bill.amount)<1
+  );
+}
+
 // ── UPCOMING BILLS (mini strip) ──
 function renderUpcomingMini(){
   const el=document.getElementById('upcomingMini');if(!el)return;
   const today=new Date();const todayDay=today.getDate();
-  const month=state.currentMonth,year=state.currentYear;
   const bills=(state.bills||[]).filter(b=>{
     const acct=state.activeAccount;return acct==='All'||b.account===acct;
   }).map(b=>{
@@ -1100,10 +1124,13 @@ function renderUpcomingMini(){
   el.innerHTML='';
   if(!bills.length){el.innerHTML='<div style="font-size:12px;color:var(--tm);padding:4px 0;">No upcoming bills this period.</div>';return;}
   bills.forEach(b=>{
-    const overdue=b.daysUntil<0,soon=b.daysUntil<=3&&b.daysUntil>=0;
-    const card=document.createElement('div');card.className='bill-card'+(overdue?' bill-overdue':soon?' bill-soon':'');
-    const dateStr=overdue?`${Math.abs(b.daysUntil)}d overdue`:b.daysUntil===0?'Today':`${b.daysUntil}d`;
-    card.innerHTML=`<div class="bill-name">${b.name}</div><div class="bill-date">${dateStr} · Day ${b.day}</div><div class="bill-amount">${fmt(b.amount)}</div>${b.autopay?'<div class="bill-autopay">Auto-pay</div>':''}`;
+    const paid=isBillPaid(b);
+    const overdue=b.daysUntil<0&&!paid;
+    const soon=b.daysUntil<=3&&b.daysUntil>=0&&!paid;
+    const card=document.createElement('div');
+    card.className='bill-card'+(paid?' bill-paid':overdue?' bill-overdue':soon?' bill-soon':'');
+    const dateStr=paid?'✓ Paid':overdue?`${Math.abs(b.daysUntil)}d overdue`:b.daysUntil===0?'Today':`${b.daysUntil}d`;
+    card.innerHTML=`<div class="bill-name">${b.name}</div><div class="bill-date">${dateStr} · Day ${b.day}</div><div class="bill-amount" style="${paid?'text-decoration:line-through;color:var(--tm);':''}">${fmt(b.amount)}</div>${b.autopay?'<div class="bill-autopay">Auto-pay</div>':''}`;
     el.appendChild(card);
   });
 }
@@ -1116,11 +1143,31 @@ function renderBillsList(){
   el.innerHTML='';
   if(!bills.length){el.innerHTML='<div class="empty">No bills yet. Tap + Add Bill to add your recurring bills.</div>';return;}
   bills.forEach(bill=>{
+    const paid=isBillPaid(bill);
     const daysUntil=bill.day-todayDay;
-    const overdue=daysUntil<0,soon=daysUntil<=3&&daysUntil>=0;
-    const item=document.createElement('div');item.className='bill-item'+(overdue?' overdue':soon?' due-soon':'');
-    const dateStr=overdue?`${Math.abs(daysUntil)}d overdue`:daysUntil===0?'Due today':`Due in ${daysUntil}d`;
-    item.innerHTML=`<div class="bill-left"><div class="bill-item-name">${bill.name}</div><div class="bill-item-meta"><span>Day ${bill.day} · ${bill.account.replace(' Personal','').replace('Simpson ','')}</span><span>${bill.category}</span>${bill.autopay?'<span class="bill-autopay-tag">Auto-pay</span>':''}${bill.reminder?'<span class="bill-reminder-tag">🔔 Reminder</span>':''}</div></div><div class="bill-right"><div class="bill-right-amt">${fmt(bill.amount)}</div><div class="bill-right-day">${dateStr}</div><div style="display:flex;gap:4px;margin-top:4px;"><button class="tx-btn" data-id="${bill.id}" title="Edit bill">✎</button><button class="tx-btn tx-del" data-id="${bill.id}" title="Delete bill">×</button></div></div>`;
+    const overdue=daysUntil<0&&!paid;
+    const soon=daysUntil<=3&&daysUntil>=0&&!paid;
+    const item=document.createElement('div');
+    item.className='bill-item'+(paid?' paid-item':overdue?' overdue':soon?' due-soon':'');
+    const dateStr=paid?'✓ Paid this month':overdue?`${Math.abs(daysUntil)}d overdue`:daysUntil===0?'Due today':`Due in ${daysUntil}d`;
+    item.innerHTML=`
+      <div class="bill-left">
+        <div class="bill-item-name" style="${paid?'color:var(--tm);':''}">${bill.name}</div>
+        <div class="bill-item-meta">
+          <span>Day ${bill.day} · ${bill.account.replace(' Personal','').replace('Simpson ','')}</span>
+          <span>${bill.category}</span>
+          ${bill.autopay?'<span class="bill-autopay-tag">Auto-pay</span>':''}
+          ${bill.reminder?'<span class="bill-reminder-tag">🔔 Reminder</span>':''}
+        </div>
+      </div>
+      <div class="bill-right">
+        <div class="bill-right-amt" style="${paid?'text-decoration:line-through;color:var(--tm);':''}">${fmt(bill.amount)}</div>
+        <div class="bill-right-day" style="${paid?'color:var(--seafoam-text);font-weight:600;':overdue?'color:var(--coral-text);':''}">${dateStr}</div>
+        <div style="display:flex;gap:4px;margin-top:4px;">
+          <button class="tx-btn" data-id="${bill.id}" title="Edit bill">✎</button>
+          <button class="tx-btn tx-del" data-id="${bill.id}" title="Delete bill">×</button>
+        </div>
+      </div>`;
     el.appendChild(item);
   });
   el.querySelectorAll('[title="Edit bill"]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openEditBill(btn.dataset.id);}));
@@ -1250,19 +1297,28 @@ function renderHome(){
   const txs=getTxs(acct);
   const income=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  const carry=(acct!=='All'&&state.activePeriod!=='all')?getCarryover(acct):0;
+  const carry=state.activePeriod!=='all'?getCarryover(acct):0;
   let totalBudget=0;
   (acct==='All'?state.accounts:[acct]).forEach(a=>{Object.values(state.budgets[a]||{}).forEach(bv=>{totalBudget+=getBudgeted(bv);});});
   const balance=(income+carry)-expense;
   const pct=totalBudget>0?Math.min(100,Math.round((expense/totalBudget)*100)):0;
   const pfillCls=pct>=100?'over':pct>=80?'warn':'ok';
 
-  // Carryover banner
+  // Carryover banner — show for positive and negative carry
   const banner=document.getElementById('carryBanner');
-  if(carry>0){document.getElementById('carryAmt').textContent=fmt(carry);banner.classList.add('show');}else{banner.classList.remove('show');}
+  const carryLbl=banner.querySelector('.carryover-lbl');
+  const carryAmtEl=document.getElementById('carryAmt');
+  if(carry!==0&&state.activePeriod!=='all'){
+    carryAmtEl.textContent=(carry<0?'−':'')+fmt(Math.abs(carry));
+    carryAmtEl.style.color=carry<0?'var(--coral-text)':'var(--navy-deep)';
+    carryLbl.textContent=carry<0?'Deficit Carried':'Carried Over';
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
 
   const balEl=document.getElementById('homeBalance');balEl.textContent=(balance<0?'−':'')+fmt(Math.abs(balance));balEl.className='balance-amt'+(balance<0?' neg':'');
-  renderStats('homeStats',income+(carry>0?carry:0),expense,totalBudget);
+  renderStats('homeStats',income+carry,expense,totalBudget);
   document.getElementById('homeProgFill').style.width=pct+'%';document.getElementById('homeProgFill').className='prog-fill '+pfillCls;
   document.getElementById('homePctLbl').textContent=pct+'% of budget used';
   document.getElementById('homeDaysLeft').textContent=daysLeft();
