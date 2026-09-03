@@ -619,17 +619,6 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title" id="budgetModalTitle">Edit Budget</div>
-    <div class="carry-section">
-      <div class="carry-title">Carryover Settings</div>
-      <div class="carry-row">
-        <div><div class="carry-lbl">Period 1 → Period 2</div><div class="carry-desc">Carry unused P1 balance into P2</div></div>
-        <label class="toggle-switch"><input type="checkbox" id="carryP1P2"/><span class="toggle-slider"></span></label>
-      </div>
-      <div class="carry-row">
-        <div><div class="carry-lbl">Period 2 → Next Month</div><div class="carry-desc">Carry unused P2 into next month</div></div>
-        <label class="toggle-switch"><input type="checkbox" id="carryP2Next"/><span class="toggle-slider"></span></label>
-      </div>
-    </div>
     <div id="budgetEditList"></div>
     <div style="margin-top:12px;">
       <div style="display:flex;gap:8px;margin-bottom:10px;">
@@ -817,14 +806,27 @@ const INCOME_CATS=['Salary','Paycheck','Allowance from Joint','Refund','Gift','B
 const EXPENSE_CATS=['Rent','Tesla Car Note','Mercedes Car Note','Car Insurance','Tithes','Groceries','Food','Eating Out',"Sally's Allowance","Ray's Allowance",'Utilities','Medicine/Vitamins','Fuel','Car Charge','Personal Things','Shopping','Gifts','Misc','Credit Card Payment','Date Night','Toll','Netflix','Subscriptions','Hair & Beauty','Phone Bill','Internet','Other'];
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
+// ── AUTO-DETECT CURRENT PERIOD ──
+// 30th paycheck funds Period 1 (1–15) of NEXT month
+// 15th paycheck funds Period 2 (16–30) of SAME month
+// So on load: day 1–15 = Period 1, day 16–end = Period 2
+function getDefaultPeriod(){
+  const day=new Date().getDate();
+  return day<=15?'1':'2';
+}
+function getDefaultMonth(){return new Date().getMonth();}
+function getDefaultYear(){return new Date().getFullYear();}
+
 const DEFAULT={
   accounts:['Simpson Joint','Sally Personal','Ray Personal'],
-  activeAccount:'All', activePeriod:'all', activeView:'home',
-  currentMonth:new Date().getMonth(), currentYear:new Date().getFullYear(),
+  activeAccount:'All',
+  activePeriod:getDefaultPeriod(),
+  activeView:'home',
+  currentMonth:getDefaultMonth(),
+  currentYear:getDefaultYear(),
   extraCategories:[],
-  categoryRules:{},// { "chipotle": "Food", "verizon": "Phone Bill" }
+  categoryRules:{},
   allowanceLinks:{"Sally's Allowance":'Sally Personal',"Ray's Allowance":'Ray Personal'},
-  carryover:{'Simpson Joint':{p1ToP2:false,p2ToNext:false},'Sally Personal':{p1ToP2:false,p2ToNext:false},'Ray Personal':{p1ToP2:false,p2ToNext:false}},
   budgets:{
     'Simpson Joint':{'Rent':{p1:900,p2:0,note:'Due 1st'},'Tesla Car Note':{p1:0,p2:624,note:''},'Mercedes Car Note':{p1:441,p2:0,note:''},'Car Insurance':{p1:0,p2:356,note:''},'Tithes':{p1:150,p2:155,note:''},'Groceries':{p1:200,p2:200,note:''},'Utilities':{p1:0,p2:150,note:''},"Sally's Allowance":{p1:200,p2:0,note:''},"Ray's Allowance":{p1:150,p2:0,note:''},'Misc':{p1:50,p2:50,note:''}},
     'Sally Personal':{'Fuel':{p1:60,p2:60,note:'Gas'},'Personal Things':{p1:40,p2:40,note:''},'Hair & Beauty':{p1:50,p2:0,note:''},'Food':{p1:25,p2:25,note:''}},
@@ -900,9 +902,10 @@ async function loadAllFromSupabase(){
         if(r.key==='extraCategories')state.extraCategories=r.value;
         if(r.key==='uiState'){
           state.activeAccount=r.value.activeAccount||'All';
-          state.activePeriod=r.value.activePeriod||'all';
-          state.currentMonth=r.value.currentMonth!=null?r.value.currentMonth:new Date().getMonth();
-          state.currentYear=r.value.currentYear||new Date().getFullYear();
+          // Always reset to today's real date and correct period on load
+          state.currentMonth=getDefaultMonth();
+          state.currentYear=getDefaultYear();
+          state.activePeriod=getDefaultPeriod();
           state.activeView=r.value.activeView||'home';
         }
       });
@@ -1043,36 +1046,97 @@ function getTxs(account,period){return state.transactions.filter(tx=>(account===
 function getAllMonthTxs(account){return state.transactions.filter(tx=>{const d=new Date(tx.date+'T12:00:00');return(account==='All'||tx.account===account)&&d.getMonth()===state.currentMonth&&d.getFullYear()===state.currentYear;});}
 function getBudgeted(bv,period){if((period||state.activePeriod)==='all')return(bv.p1||0)+(bv.p2||0);if((period||state.activePeriod)==='1')return bv.p1||0;return bv.p2||0;}
 
+// ── CARRYOVER — always on, crosses month boundaries ──
+// Pay schedule:
+//   30th paycheck → funds Period 1 (1–15) of NEXT month
+//   15th paycheck → funds Period 2 (16–30) of SAME month
+// Income for a period = transactions dated in that period's funding window
+// P1 income = transactions with period='1' from PREVIOUS month's second half (16–30)
+//             + the 30th paycheck from prev month (period='2', day 29-31)
+// We simplify: income tagged period='1' of current month + income tagged period='2' of prev month
+
+function getPeriodIncome(account, month, year, period){
+  if(period==='1'){
+    // P1 income: the 30th paycheck from previous month (tagged period='2' prev month)
+    let pm=month-1, py=year;
+    if(pm<0){pm=11;py--;}
+    return state.transactions.filter(tx=>{
+      const d=new Date(tx.date+'T12:00:00');
+      return tx.account===account &&
+             tx.type==='income' &&
+             d.getMonth()===pm &&
+             d.getFullYear()===py &&
+             tx.period==='2'; // the 30th paycheck
+    }).reduce((s,t)=>s+t.amount,0);
+  } else {
+    // P2 income: the 15th paycheck from same month (tagged period='1' same month)
+    return state.transactions.filter(tx=>{
+      const d=new Date(tx.date+'T12:00:00');
+      return tx.account===account &&
+             tx.type==='income' &&
+             d.getMonth()===month &&
+             d.getFullYear()===year &&
+             tx.period==='1'; // the 15th paycheck
+    }).reduce((s,t)=>s+t.amount,0);
+  }
+}
+
+function getPeriodExpenses(account, month, year, period){
+  return state.transactions.filter(tx=>{
+    const d=new Date(tx.date+'T12:00:00');
+    return tx.account===account &&
+           tx.type==='expense' &&
+           d.getMonth()===month &&
+           d.getFullYear()===year &&
+           tx.period===period;
+  }).reduce((s,t)=>s+t.amount,0);
+}
+
 function getCarryover(account){
-  // For All view, sum carryover across all accounts
   if(account==='All'){
     return state.accounts.reduce((s,acc)=>s+getCarryover(acc),0);
   }
-  const co=state.carryover[account];if(!co)return 0;
-  let carry=0;
-  if(state.activePeriod==='2'&&co.p1ToP2){
-    const p1=state.transactions.filter(tx=>{
-      const d=new Date(tx.date+'T12:00:00');
-      return tx.account===account&&d.getMonth()===state.currentMonth&&d.getFullYear()===state.currentYear&&tx.period==='1';
-    });
-    const inc=p1.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-    const exp=p1.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-    // Allow negative — if overspent in P1 that deficit carries into P2
-    carry=inc-exp;
+  if(state.activePeriod==='all') return 0;
+
+  const m=state.currentMonth, y=state.currentYear;
+
+  if(state.activePeriod==='2'){
+    // Carry from P1 of same month
+    const p1Inc=getPeriodIncome(account,m,y,'1');
+    const p1Exp=getPeriodExpenses(account,m,y,'1');
+    return p1Inc - p1Exp;
   }
-  if(state.activePeriod==='1'&&co.p2ToNext){
-    let pm=state.currentMonth-1,py=state.currentYear;
+
+  if(state.activePeriod==='1'){
+    // Carry from P2 of previous month
+    let pm=m-1, py=y;
     if(pm<0){pm=11;py--;}
-    const p2=state.transactions.filter(tx=>{
-      const d=new Date(tx.date+'T12:00:00');
-      return tx.account===account&&d.getMonth()===pm&&d.getFullYear()===py&&tx.period==='2';
-    });
-    const inc=p2.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-    const exp=p2.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-    // Allow negative carryover
-    carry=inc-exp;
+    const p2Inc=getPeriodIncome(account,pm,py,'2');
+    const p2Exp=getPeriodExpenses(account,pm,py,'2');
+    return p2Inc - p2Exp;
   }
-  return carry;
+
+  return 0;
+}
+
+// ── INCOME for current view (period-aware) ──
+// When viewing P1: income = the 30th paycheck from last month
+// When viewing P2: income = the 15th paycheck from this month
+function getPeriodAwareIncome(account){
+  const m=state.currentMonth, y=state.currentYear;
+  if(state.activePeriod==='all'){
+    // All month: both paychecks — 15th (tagged P1) + 30th (tagged P2, but logged this month)
+    return state.transactions.filter(tx=>{
+      const d=new Date(tx.date+'T12:00:00');
+      return (account==='All'||tx.account===account) &&
+             tx.type==='income' &&
+             d.getMonth()===m && d.getFullYear()===y;
+    }).reduce((s,t)=>s+t.amount,0);
+  }
+  if(account==='All'){
+    return state.accounts.reduce((s,acc)=>s+getPeriodIncome(acc,m,y,state.activePeriod),0);
+  }
+  return getPeriodIncome(account,m,y,state.activePeriod);
 }
 
 function daysLeft(){
@@ -1295,7 +1359,8 @@ function renderHome(){
   document.getElementById('homeAcctName').textContent=acct==='All'?'All Accounts':acct;
 
   const txs=getTxs(acct);
-  const income=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  // Income is period-aware: P1 uses Aug 30th paycheck, P2 uses Sep 15th paycheck
+  const income=getPeriodAwareIncome(acct);
   const expense=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const carry=state.activePeriod!=='all'?getCarryover(acct):0;
   let totalBudget=0;
@@ -1523,8 +1588,6 @@ function setBillChip(p){billPeriod=p;document.getElementById('billChipP1').class
 function openBudgetModal(){
   const acct=state.activeAccount==='All'?'Simpson Joint':state.activeAccount;
   const budgets=state.budgets[acct]||{};
-  const co=state.carryover[acct]||{};
-  document.getElementById('carryP1P2').checked=co.p1ToP2||false;document.getElementById('carryP2Next').checked=co.p2ToNext||false;
   document.getElementById('budgetModalTitle').textContent='Edit Budget · '+(acct==='Simpson Joint'?'Joint':acct.replace(' Personal',''));
   const list=document.getElementById('budgetEditList');list.innerHTML='';
   const linked=Object.entries(state.allowanceLinks).find(([,a])=>a===acct);
@@ -1673,9 +1736,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('btnSaveBudget').addEventListener('click',async()=>{
     const acct=state.activeAccount==='All'?'Simpson Joint':state.activeAccount;
     if(!state.budgets[acct])state.budgets[acct]={};
-    if(!state.carryover[acct])state.carryover[acct]={};
-    state.carryover[acct].p1ToP2=document.getElementById('carryP1P2').checked;
-    state.carryover[acct].p2ToNext=document.getElementById('carryP2Next').checked;
     document.querySelectorAll('#budgetEditList .budget-edit-input').forEach(inp=>{
       const cat=inp.dataset.cat;const p=inp.dataset.p;const val=parseFloat(inp.value)||0;
       if(!state.budgets[acct][cat])state.budgets[acct][cat]={p1:0,p2:0,note:''};
