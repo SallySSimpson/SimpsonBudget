@@ -806,16 +806,34 @@ const INCOME_CATS=['Salary','Paycheck','Allowance from Joint','Refund','Gift','B
 const EXPENSE_CATS=['Rent','Tesla Car Note','Mercedes Car Note','Car Insurance','Tithes','Groceries','Food','Eating Out',"Sally's Allowance","Ray's Allowance",'Utilities','Medicine/Vitamins','Fuel','Car Charge','Personal Things','Shopping','Gifts','Misc','Credit Card Payment','Date Night','Toll','Netflix','Subscriptions','Hair & Beauty','Phone Bill','Internet','Other'];
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-// ── AUTO-DETECT CURRENT PERIOD ──
-// 30th paycheck funds Period 1 (1–15) of NEXT month
-// 15th paycheck funds Period 2 (16–30) of SAME month
-// So on load: day 1–15 = Period 1, day 16–end = Period 2
-function getDefaultPeriod(){
-  const day=new Date().getDate();
-  return day<=15?'1':'2';
+// ── PAY PERIOD LOGIC ──
+// Period 1: funded by 15th paycheck → expenses happen 15th–30th of SAME month
+// Period 2: funded by 30th paycheck → expenses happen 1st–14th of NEXT month
+//
+// So when looking at the calendar:
+//   Day 1–14  → you are in PREVIOUS month, Period 2
+//   Day 15–31 → you are in CURRENT month, Period 1
+//
+// Example: Sep 8 → showing August Period 2 (Aug 30 paycheck, Sep 1–14 expenses)
+//          Sep 15 → showing September Period 1 (Sep 15 paycheck, Sep 15–30 expenses)
+
+function getBudgetContext(){
+  const today=new Date();
+  const day=today.getDate();
+  if(day<=14){
+    // We're in the first 14 days — this is the PREVIOUS month's Period 2
+    let m=today.getMonth()-1, y=today.getFullYear();
+    if(m<0){m=11;y--;}
+    return{month:m,year:y,period:'2'};
+  } else {
+    // Day 15+ — this is the CURRENT month's Period 1
+    return{month:today.getMonth(),year:today.getFullYear(),period:'1'};
+  }
 }
-function getDefaultMonth(){return new Date().getMonth();}
-function getDefaultYear(){return new Date().getFullYear();}
+
+function getDefaultPeriod(){return getBudgetContext().period;}
+function getDefaultMonth(){return getBudgetContext().month;}
+function getDefaultYear(){return getBudgetContext().year;}
 
 const DEFAULT={
   accounts:['Simpson Joint','Sally Personal','Ray Personal'],
@@ -902,10 +920,11 @@ async function loadAllFromSupabase(){
         if(r.key==='extraCategories')state.extraCategories=r.value;
         if(r.key==='uiState'){
           state.activeAccount=r.value.activeAccount||'All';
-          // Always reset to today's real date and correct period on load
-          state.currentMonth=getDefaultMonth();
-          state.currentYear=getDefaultYear();
-          state.activePeriod=getDefaultPeriod();
+          // Always reset to today's correct budget period on load
+          const ctx=getBudgetContext();
+          state.currentMonth=ctx.month;
+          state.currentYear=ctx.year;
+          state.activePeriod=ctx.period;
           state.activeView=r.value.activeView||'home';
         }
       });
@@ -1041,9 +1060,39 @@ async function migrateLocalData(){
 const fmt=n=>'$'+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 const showToast=msg=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);};
 function getExpCats(){return[...EXPENSE_CATS,...(state.extraCategories||[]).filter(c=>!EXPENSE_CATS.includes(c))];}
-function txInPeriod(tx,period){const d=new Date(tx.date+'T12:00:00');const m=d.getMonth()===state.currentMonth&&d.getFullYear()===state.currentYear;const p=period==='all'||tx.period===period;return m&&p;}
-function getTxs(account,period){return state.transactions.filter(tx=>(account==='All'||tx.account===account)&&txInPeriod(tx,period||state.activePeriod));}
-function getAllMonthTxs(account){return state.transactions.filter(tx=>{const d=new Date(tx.date+'T12:00:00');return(account==='All'||tx.account===account)&&d.getMonth()===state.currentMonth&&d.getFullYear()===state.currentYear;});}
+// Which transactions belong to a given budget month+period?
+// Period 1: transactions dated day 15–31 of that month
+// Period 2: transactions dated day 1–14 of the NEXT month
+// Full month ('all'): Period 1 + Period 2 combined = day 15 of month through day 14 of next month
+function txBelongsToPeriod(tx, month, year, period){
+  const d=new Date(tx.date+'T12:00:00');
+  const day=d.getDate(), txm=d.getMonth(), txy=d.getFullYear();
+  if(period==='1'){
+    return txm===month && txy===year && day>=15;
+  }
+  if(period==='2'){
+    let nm=month+1,ny=year; if(nm>11){nm=0;ny++;}
+    return txm===nm && txy===ny && day<=14;
+  }
+  // 'all' = full budget cycle: day 15 of month through day 14 of next month
+  let nm=month+1,ny=year; if(nm>11){nm=0;ny++;}
+  const inP1=txm===month && txy===year && day>=15;
+  const inP2=txm===nm && txy===ny && day<=14;
+  return inP1||inP2;
+}
+
+function getTxs(account,period){
+  const p=period||state.activePeriod;
+  return state.transactions.filter(tx=>
+    (account==='All'||tx.account===account)&&
+    txBelongsToPeriod(tx,state.currentMonth,state.currentYear,p)
+  );
+}
+
+// getAllMonthTxs = full budget cycle (P1+P2) for the current display month
+function getAllMonthTxs(account){
+  return getTxs(account,'all');
+}
 function getBudgeted(bv,period){if((period||state.activePeriod)==='all')return(bv.p1||0)+(bv.p2||0);if((period||state.activePeriod)==='1')return bv.p1||0;return bv.p2||0;}
 
 // ── CARRYOVER — always on, crosses month boundaries ──
@@ -1055,67 +1104,68 @@ function getBudgeted(bv,period){if((period||state.activePeriod)==='all')return(b
 //             + the 30th paycheck from prev month (period='2', day 29-31)
 // We simplify: income tagged period='1' of current month + income tagged period='2' of prev month
 
-function getPeriodIncome(account, month, year, period){
-  if(period==='1'){
-    // P1 income: the 30th paycheck from previous month (tagged period='2' prev month)
-    let pm=month-1, py=year;
-    if(pm<0){pm=11;py--;}
-    return state.transactions.filter(tx=>{
-      const d=new Date(tx.date+'T12:00:00');
-      return tx.account===account &&
-             tx.type==='income' &&
-             d.getMonth()===pm &&
-             d.getFullYear()===py &&
-             tx.period==='2'; // the 30th paycheck
-    }).reduce((s,t)=>s+t.amount,0);
-  } else {
-    // P2 income: the 15th paycheck from same month (tagged period='1' same month)
-    return state.transactions.filter(tx=>{
-      const d=new Date(tx.date+'T12:00:00');
-      return tx.account===account &&
-             tx.type==='income' &&
-             d.getMonth()===month &&
-             d.getFullYear()===year &&
-             tx.period==='1'; // the 15th paycheck
-    }).reduce((s,t)=>s+t.amount,0);
-  }
-}
+// ── PERIOD INCOME & EXPENSES ──
+// Period 1 income = 15th paycheck of the period's month (logged on the 15th, period='1')
+// Period 2 income = 30th paycheck of the period's month (logged on 30th, period='2')
+// Period 1 expenses = transactions dated 15th–31st of period's month
+// Period 2 expenses = transactions dated 1st–14th of the FOLLOWING month
 
-function getPeriodExpenses(account, month, year, period){
+function getPeriodIncome(account, month, year, period){
+  // Income is logged in the same month as the period, tagged with that period
   return state.transactions.filter(tx=>{
     const d=new Date(tx.date+'T12:00:00');
-    return tx.account===account &&
-           tx.type==='expense' &&
+    return (account==='All'||tx.account===account) &&
+           tx.type==='income' &&
            d.getMonth()===month &&
            d.getFullYear()===year &&
            tx.period===period;
   }).reduce((s,t)=>s+t.amount,0);
 }
 
-function getCarryover(account){
-  if(account==='All'){
-    return state.accounts.reduce((s,acc)=>s+getCarryover(acc),0);
+function getPeriodExpenses(account, month, year, period){
+  if(period==='1'){
+    // Period 1 expenses: day 15–31 of this month
+    return state.transactions.filter(tx=>{
+      const d=new Date(tx.date+'T12:00:00');
+      return (account==='All'||tx.account===account) &&
+             tx.type==='expense' &&
+             d.getMonth()===month &&
+             d.getFullYear()===year &&
+             d.getDate()>=15;
+    }).reduce((s,t)=>s+t.amount,0);
+  } else {
+    // Period 2 expenses: day 1–14 of the NEXT month
+    let nm=month+1, ny=year;
+    if(nm>11){nm=0;ny++;}
+    return state.transactions.filter(tx=>{
+      const d=new Date(tx.date+'T12:00:00');
+      return (account==='All'||tx.account===account) &&
+             tx.type==='expense' &&
+             d.getMonth()===nm &&
+             d.getFullYear()===ny &&
+             d.getDate()<=14;
+    }).reduce((s,t)=>s+t.amount,0);
   }
+}
+
+function getCarryover(account){
   if(state.activePeriod==='all') return 0;
-
   const m=state.currentMonth, y=state.currentYear;
-
   if(state.activePeriod==='2'){
-    // Carry from P1 of same month
+    // Carrying from Period 1 of same budget month into Period 2
     const p1Inc=getPeriodIncome(account,m,y,'1');
     const p1Exp=getPeriodExpenses(account,m,y,'1');
-    return p1Inc - p1Exp;
+    return p1Inc-p1Exp;
   }
-
   if(state.activePeriod==='1'){
-    // Carry from P2 of previous month
-    let pm=m-1, py=y;
-    if(pm<0){pm=11;py--;}
+    // Carrying from Period 2 of PREVIOUS budget month into this Period 1
+    // Previous budget month's Period 2: its expenses are in days 1–14 of current calendar month
+    // and its income was the previous month's 30th paycheck
+    let pm=m-1, py=y; if(pm<0){pm=11;py--;}
     const p2Inc=getPeriodIncome(account,pm,py,'2');
     const p2Exp=getPeriodExpenses(account,pm,py,'2');
-    return p2Inc - p2Exp;
+    return p2Inc-p2Exp;
   }
-
   return 0;
 }
 
@@ -1125,7 +1175,7 @@ function getCarryover(account){
 function getPeriodAwareIncome(account){
   const m=state.currentMonth, y=state.currentYear;
   if(state.activePeriod==='all'){
-    // All month: both paychecks — 15th (tagged P1) + 30th (tagged P2, but logged this month)
+    // Full month: all income transactions this month for this account
     return state.transactions.filter(tx=>{
       const d=new Date(tx.date+'T12:00:00');
       return (account==='All'||tx.account===account) &&
@@ -1133,9 +1183,7 @@ function getPeriodAwareIncome(account){
              d.getMonth()===m && d.getFullYear()===y;
     }).reduce((s,t)=>s+t.amount,0);
   }
-  if(account==='All'){
-    return state.accounts.reduce((s,acc)=>s+getPeriodIncome(acc,m,y,state.activePeriod),0);
-  }
+  // Period-specific: 'All' now handled inside getPeriodIncome via account==='All' check
   return getPeriodIncome(account,m,y,state.activePeriod);
 }
 
@@ -1348,11 +1396,19 @@ function renderTxList(txs,listId){
 
 // ── HOME VIEW RENDER ──
 function renderHome(){
-  // Month label — show full date when viewing current month, just month otherwise
+  // Month label — describe the budget period correctly
   const today=new Date();
-  const isCurrentMonth=state.currentMonth===today.getMonth()&&state.currentYear===today.getFullYear();
-  const dayStr=isCurrentMonth?', '+today.toLocaleDateString('en-US',{weekday:'short'})+' '+today.getDate():'';
-  document.getElementById('monthLabel').textContent=MONTHS[state.currentMonth]+' '+state.currentYear+dayStr;
+  const isCurrentPeriod=state.currentMonth===getDefaultMonth()&&state.currentYear===getDefaultYear();
+  const dayStr=isCurrentPeriod?', '+today.toLocaleDateString('en-US',{weekday:'short'})+' '+today.getDate():'';
+  // Period 2 label: show "Aug P2 (Sep 1–14)" style context
+  let periodCtx='';
+  if(state.activePeriod==='2'){
+    let nm=state.currentMonth+1,ny=state.currentYear;if(nm>11){nm=0;ny++;}
+    periodCtx=' · P2 ('+MONTHS[nm].slice(0,3)+' 1–14)';
+  } else if(state.activePeriod==='1'){
+    periodCtx=' · P1 ('+MONTHS[state.currentMonth].slice(0,3)+' 15–30)';
+  }
+  document.getElementById('monthLabel').textContent=MONTHS[state.currentMonth]+' '+state.currentYear+dayStr+periodCtx;
   ['periodAll','period1','period2'].forEach((id,i)=>{document.getElementById(id).className='period-btn'+(state.activePeriod===['all','1','2'][i]?' active':'');});
 
   const acct=state.activeAccount;
