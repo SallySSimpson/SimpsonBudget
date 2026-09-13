@@ -1113,10 +1113,13 @@ function getTxs(account,period){
 function getAllMonthTxs(account){
   return getTxs(account,'all');
 }
-// Budget is always shown as the full monthly amount (p1+p2 combined)
-// Spending is filtered by period via txBelongsToPeriod
-// So "remaining" = monthly budget minus what's been spent in the current period window
-function getBudgeted(bv){return (bv.p1||0)+(bv.p2||0);}
+// Budget is period-aware: P1 budget for P1 window, P2 budget for P2 window
+// Full month shows p1+p2 combined
+function getBudgeted(bv){
+  if(state.activePeriod==='1') return bv.p1||0;
+  if(state.activePeriod==='2') return bv.p2||0;
+  return (bv.p1||0)+(bv.p2||0);
+}
 
 // ── CARRYOVER — always on, crosses month boundaries ──
 // Pay schedule:
@@ -1656,7 +1659,6 @@ function openBudgetModal(){
 }
 function buildBudgetRow(list,cat,bv){
   const isExtra=(state.extraCategories||[]).includes(cat);
-  const monthlyAmt=(bv.p1||0)+(bv.p2||0);
   const row=document.createElement('div');row.className='budget-edit-row';row.dataset.cat=cat;
   row.innerHTML=`
     <div class="budget-edit-row-top">
@@ -1664,8 +1666,11 @@ function buildBudgetRow(list,cat,bv){
       <div style="display:flex;align-items:center;gap:8px;">
         ${isExtra?`<button class="cat-delete-btn" data-cat="${cat}">×</button>`:''}
         <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
-          <div style="font-size:10px;color:var(--tm);">Monthly</div>
-          <input type="number" class="budget-edit-input" data-cat="${cat}" data-p="monthly" value="${monthlyAmt||''}" placeholder="$0" step="1"/>
+          <div style="font-size:10px;color:var(--tm);">P1 (15–29) · P2 (30–14)</div>
+          <div style="display:flex;gap:6px;">
+            <input type="number" class="budget-edit-input" data-cat="${cat}" data-p="p1" value="${bv.p1||''}" placeholder="P1" step="1"/>
+            <input type="number" class="budget-edit-input" data-cat="${cat}" data-p="p2" value="${bv.p2||''}" placeholder="P2" step="1"/>
+          </div>
         </div>
       </div>
     </div>
@@ -1810,13 +1815,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.querySelectorAll('#budgetEditList .budget-edit-input').forEach(inp=>{
       const cat=inp.dataset.cat;const p=inp.dataset.p;const val=parseFloat(inp.value)||0;
       if(!state.budgets[acct][cat])state.budgets[acct][cat]={p1:0,p2:0,note:''};
-      if(p==='monthly'){
-        // Store full monthly amount in p1, zero out p2
-        state.budgets[acct][cat].p1=val;
-        state.budgets[acct][cat].p2=0;
-      } else {
-        state.budgets[acct][cat][p]=val;
-      }
+      if(p==='p1'||p==='p2') state.budgets[acct][cat][p]=val;
     });
     document.querySelectorAll('#budgetEditList .budget-note-input').forEach(inp=>{
       const cat=inp.dataset.cat;
