@@ -1111,15 +1111,17 @@ function getBudgeted(bv,period){if((period||state.activePeriod)==='all')return(b
 // Period 2 expenses = transactions dated 1st–14th of the FOLLOWING month
 
 function getPeriodIncome(account, month, year, period){
-  // Income is logged in the same month as the period, tagged with that period
-  return state.transactions.filter(tx=>{
-    const d=new Date(tx.date+'T12:00:00');
+  // Income uses the same date-based boundaries as expenses via txBelongsToPeriod
+  // Temporarily set state month/year to look up correctly
+  const prevM=state.currentMonth, prevY=state.currentYear;
+  state.currentMonth=month; state.currentYear=year;
+  const result=state.transactions.filter(tx=>{
     return (account==='All'||tx.account===account) &&
            tx.type==='income' &&
-           d.getMonth()===month &&
-           d.getFullYear()===year &&
-           tx.period===period;
+           txBelongsToPeriod(tx,month,year,period);
   }).reduce((s,t)=>s+t.amount,0);
+  state.currentMonth=prevM; state.currentYear=prevY;
+  return result;
 }
 
 function getPeriodExpenses(account, month, year, period){
@@ -1174,17 +1176,12 @@ function getCarryover(account){
 // When viewing P2: income = the 15th paycheck from this month
 function getPeriodAwareIncome(account){
   const m=state.currentMonth, y=state.currentYear;
-  if(state.activePeriod==='all'){
-    // Full month: all income transactions this month for this account
-    return state.transactions.filter(tx=>{
-      const d=new Date(tx.date+'T12:00:00');
-      return (account==='All'||tx.account===account) &&
-             tx.type==='income' &&
-             d.getMonth()===m && d.getFullYear()===y;
-    }).reduce((s,t)=>s+t.amount,0);
-  }
-  // Period-specific: 'All' now handled inside getPeriodIncome via account==='All' check
-  return getPeriodIncome(account,m,y,state.activePeriod);
+  const p=state.activePeriod;
+  return state.transactions.filter(tx=>
+    (account==='All'||tx.account===account) &&
+    tx.type==='income' &&
+    txBelongsToPeriod(tx,m,y,p)
+  ).reduce((s,t)=>s+t.amount,0);
 }
 
 function daysLeft(){
