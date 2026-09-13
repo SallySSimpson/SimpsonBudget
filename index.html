@@ -820,14 +820,21 @@ const MONTHS=['January','February','March','April','May','June','July','August',
 function getBudgetContext(){
   const today=new Date();
   const day=today.getDate();
-  if(day<=14){
-    // We're in the first 14 days — this is the PREVIOUS month's Period 2
-    let m=today.getMonth()-1, y=today.getFullYear();
-    if(m<0){m=11;y--;}
-    return{month:m,year:y,period:'2'};
+  const month=today.getMonth();
+  const year=today.getFullYear();
+  const p2Start=getP2StartDay(month,year);
+
+  if(day>=p2Start){
+    // On or after 30th = Period 2 of this month
+    return{month,year,period:'2'};
+  } else if(day>=15){
+    // 15th through 29th = Period 1 of this month
+    return{month,year,period:'1'};
   } else {
-    // Day 15+ — this is the CURRENT month's Period 1
-    return{month:today.getMonth(),year:today.getFullYear(),period:'1'};
+    // 1st–14th = Period 2 of PREVIOUS month
+    let pm=month-1,py=year;
+    if(pm<0){pm=11;py--;}
+    return{month:pm,year:py,period:'2'};
   }
 }
 
@@ -1060,25 +1067,38 @@ async function migrateLocalData(){
 const fmt=n=>'$'+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 const showToast=msg=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);};
 function getExpCats(){return[...EXPENSE_CATS,...(state.extraCategories||[]).filter(c=>!EXPENSE_CATS.includes(c))];}
-// Which transactions belong to a given budget month+period?
-// Period 1: transactions dated day 15–31 of that month
-// Period 2: transactions dated day 1–14 of the NEXT month
-// Full month ('all'): Period 1 + Period 2 combined = day 15 of month through day 14 of next month
+// PAY PERIOD BOUNDARIES:
+// Period 1: 15th through 29th of same month (the 15th paycheck covers this)
+// Period 2: 30th (or last day if month < 30 days) through 14th of next month
+//           (the 30th paycheck covers this)
+function getLastDayOfMonth(month, year){
+  return new Date(year, month+1, 0).getDate();
+}
+function getP2StartDay(month, year){
+  // P2 starts on the 30th, unless month has fewer than 30 days (e.g. Feb)
+  return Math.min(30, getLastDayOfMonth(month, year));
+}
 function txBelongsToPeriod(tx, month, year, period){
   const d=new Date(tx.date+'T12:00:00');
   const day=d.getDate(), txm=d.getMonth(), txy=d.getFullYear();
+  const p2Start=getP2StartDay(month,year);
   if(period==='1'){
-    return txm===month && txy===year && day>=15;
+    // 15th through 29th of the budget month
+    return txm===month && txy===year && day>=15 && day<p2Start;
   }
   if(period==='2'){
+    // 30th (or last day) of budget month through 14th of next month
     let nm=month+1,ny=year; if(nm>11){nm=0;ny++;}
-    return txm===nm && txy===ny && day<=14;
+    const onP2Start=txm===month && txy===year && day>=p2Start;
+    const inNextMonth=txm===nm && txy===ny && day<=14;
+    return onP2Start||inNextMonth;
   }
-  // 'all' = full budget cycle: day 15 of month through day 14 of next month
+  // 'all' = full budget cycle: 15th of month through 14th of next month
   let nm=month+1,ny=year; if(nm>11){nm=0;ny++;}
-  const inP1=txm===month && txy===year && day>=15;
-  const inP2=txm===nm && txy===ny && day<=14;
-  return inP1||inP2;
+  const inP1=txm===month && txy===year && day>=15 && day<p2Start;
+  const inP2=txm===month && txy===year && day>=p2Start;
+  const inP2Next=txm===nm && txy===ny && day<=14;
+  return inP1||inP2||inP2Next;
 }
 
 function getTxs(account,period){
@@ -1128,29 +1148,11 @@ function getPeriodIncome(account, month, year, period){
 }
 
 function getPeriodExpenses(account, month, year, period){
-  if(period==='1'){
-    // Period 1 expenses: day 15–31 of this month
-    return state.transactions.filter(tx=>{
-      const d=new Date(tx.date+'T12:00:00');
-      return (account==='All'||tx.account===account) &&
-             tx.type==='expense' &&
-             d.getMonth()===month &&
-             d.getFullYear()===year &&
-             d.getDate()>=15;
-    }).reduce((s,t)=>s+t.amount,0);
-  } else {
-    // Period 2 expenses: day 1–14 of the NEXT month
-    let nm=month+1, ny=year;
-    if(nm>11){nm=0;ny++;}
-    return state.transactions.filter(tx=>{
-      const d=new Date(tx.date+'T12:00:00');
-      return (account==='All'||tx.account===account) &&
-             tx.type==='expense' &&
-             d.getMonth()===nm &&
-             d.getFullYear()===ny &&
-             d.getDate()<=14;
-    }).reduce((s,t)=>s+t.amount,0);
-  }
+  return state.transactions.filter(tx=>{
+    return (account==='All'||tx.account===account) &&
+           tx.type==='expense' &&
+           txBelongsToPeriod(tx,month,year,period);
+  }).reduce((s,t)=>s+t.amount,0);
 }
 
 function getCarryover(account){
@@ -1396,17 +1398,18 @@ function renderTxList(txs,listId){
 
 // ── HOME VIEW RENDER ──
 function renderHome(){
-  // Month label — describe the budget period correctly
+  // Month label with correct period window description
   const today=new Date();
-  const isCurrentPeriod=state.currentMonth===getDefaultMonth()&&state.currentYear===getDefaultYear();
+  const isCurrentPeriod=state.currentMonth===getDefaultMonth()&&state.currentYear===getDefaultYear()&&state.activePeriod===getDefaultPeriod();
   const dayStr=isCurrentPeriod?', '+today.toLocaleDateString('en-US',{weekday:'short'})+' '+today.getDate():'';
-  // Period 2 label: show "Aug P2 (Sep 1–14)" style context
+  const lastDay=getLastDayOfMonth(state.currentMonth,state.currentYear);
+  const p2Start=getP2StartDay(state.currentMonth,state.currentYear);
+  let nm=state.currentMonth+1,ny=state.currentYear;if(nm>11){nm=0;ny++;}
   let periodCtx='';
   if(state.activePeriod==='2'){
-    let nm=state.currentMonth+1,ny=state.currentYear;if(nm>11){nm=0;ny++;}
-    periodCtx=' · P2 ('+MONTHS[nm].slice(0,3)+' 1–14)';
+    periodCtx=` · P2 (${MONTHS[state.currentMonth].slice(0,3)} ${p2Start}–${MONTHS[nm].slice(0,3)} 14)`;
   } else if(state.activePeriod==='1'){
-    periodCtx=' · P1 ('+MONTHS[state.currentMonth].slice(0,3)+' 15–30)';
+    periodCtx=` · P1 (${MONTHS[state.currentMonth].slice(0,3)} 15–${p2Start-1})`;
   }
   document.getElementById('monthLabel').textContent=MONTHS[state.currentMonth]+' '+state.currentYear+dayStr+periodCtx;
   ['periodAll','period1','period2'].forEach((id,i)=>{document.getElementById(id).className='period-btn'+(state.activePeriod===['all','1','2'][i]?' active':'');});
