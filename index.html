@@ -438,8 +438,8 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
   <div class="period-wrap">
     <div class="period-bar">
       <button class="period-btn active" id="periodAll">Full Month</button>
-      <button class="period-btn" id="period1">Period 1 · 1–15</button>
-      <button class="period-btn" id="period2">Period 2 · 16–30</button>
+      <button class="period-btn" id="period1">Period 1 · 15–29</button>
+      <button class="period-btn" id="period2">Period 2 · 30–14</button>
     </div>
   </div>
   <div class="carryover-banner" id="carryBanner">
@@ -581,7 +581,7 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
     <div class="form-group"><label class="form-label">Date</label><input type="date" id="txDate" class="form-input"/></div>
     <div class="form-group">
       <label class="form-label">Pay Period</label>
-      <div class="period-chips"><button class="pchip active" id="chipP1">Period 1 · 1–15</button><button class="pchip" id="chipP2">Period 2 · 16–30</button></div>
+      <div class="period-chips"><button class="pchip active" id="chipP1">Period 1 · 15–29</button><button class="pchip" id="chipP2">Period 2 · 30–14</button></div>
     </div>
     <div class="form-group"><label class="form-label">Note (optional)</label><input type="text" id="txNote" class="form-input" placeholder="Add a note..."/></div>
     <button class="modal-submit" id="btnSaveTx">Save Transaction</button>
@@ -602,7 +602,7 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
     <div class="form-group"><label class="form-label">Day of Month Due</label><input type="number" id="billDay" class="form-input" placeholder="e.g. 1, 15, 28" min="1" max="31" inputmode="numeric"/></div>
     <div class="form-group"><label class="form-label">Pay From Account</label><select id="billAcct" class="form-select"></select></div>
     <div class="form-group"><label class="form-label">Pay Period</label>
-      <div class="period-chips"><button class="pchip active" id="billChipP1">Period 1 · 1–15</button><button class="pchip" id="billChipP2">Period 2 · 16–30</button></div>
+      <div class="period-chips"><button class="pchip active" id="billChipP1">Period 1 · 15–29</button><button class="pchip" id="billChipP2">Period 2 · 30–14</button></div>
     </div>
     <div class="form-group"><label class="form-label">Category</label><select id="billCat" class="form-select"></select></div>
     <div class="form-group">
@@ -1137,17 +1137,11 @@ function getBudgeted(bv){
 // Period 2 expenses = transactions dated 1st–14th of the FOLLOWING month
 
 function getPeriodIncome(account, month, year, period){
-  // Income uses the same date-based boundaries as expenses via txBelongsToPeriod
-  // Temporarily set state month/year to look up correctly
-  const prevM=state.currentMonth, prevY=state.currentYear;
-  state.currentMonth=month; state.currentYear=year;
-  const result=state.transactions.filter(tx=>{
-    return (account==='All'||tx.account===account) &&
-           tx.type==='income' &&
-           txBelongsToPeriod(tx,month,year,period);
-  }).reduce((s,t)=>s+t.amount,0);
-  state.currentMonth=prevM; state.currentYear=prevY;
-  return result;
+  return state.transactions.filter(tx=>
+    (account==='All'||tx.account===account) &&
+    tx.type==='income' &&
+    txBelongsToPeriod(tx,month,year,period)
+  ).reduce((s,t)=>s+t.amount,0);
 }
 
 function getPeriodExpenses(account, month, year, period){
@@ -1160,23 +1154,31 @@ function getPeriodExpenses(account, month, year, period){
 
 function getCarryover(account){
   if(state.activePeriod==='all') return 0;
-  const m=state.currentMonth, y=state.currentYear;
+  // Snapshot current state
+  const savedPeriod=state.activePeriod, savedMonth=state.currentMonth, savedYear=state.currentYear;
+  let priorPeriod, priorMonth, priorYear;
   if(state.activePeriod==='2'){
-    // Carrying from Period 1 of same budget month into Period 2
-    const p1Inc=getPeriodIncome(account,m,y,'1');
-    const p1Exp=getPeriodExpenses(account,m,y,'1');
-    return p1Inc-p1Exp;
+    // Prior period = P1 of same budget month
+    priorPeriod='1'; priorMonth=savedMonth; priorYear=savedYear;
+  } else {
+    // Prior period = P2 of previous budget month
+    priorPeriod='2';
+    priorMonth=savedMonth-1; priorYear=savedYear;
+    if(priorMonth<0){priorMonth=11;priorYear--;}
   }
-  if(state.activePeriod==='1'){
-    // Carrying from Period 2 of PREVIOUS budget month into this Period 1
-    // Previous budget month's Period 2: its expenses are in days 1–14 of current calendar month
-    // and its income was the previous month's 30th paycheck
-    let pm=m-1, py=y; if(pm<0){pm=11;py--;}
-    const p2Inc=getPeriodIncome(account,pm,py,'2');
-    const p2Exp=getPeriodExpenses(account,pm,py,'2');
-    return p2Inc-p2Exp;
-  }
-  return 0;
+  // Compute prior period income and expenses using direct date-based filters
+  // (no state mutation — pass month/year explicitly)
+  const priorInc=state.transactions.filter(tx=>
+    (account==='All'||tx.account===account) &&
+    tx.type==='income' &&
+    txBelongsToPeriod(tx,priorMonth,priorYear,priorPeriod)
+  ).reduce((s,t)=>s+t.amount,0);
+  const priorExp=state.transactions.filter(tx=>
+    (account==='All'||tx.account===account) &&
+    tx.type==='expense' &&
+    txBelongsToPeriod(tx,priorMonth,priorYear,priorPeriod)
+  ).reduce((s,t)=>s+t.amount,0);
+  return priorInc-priorExp;
 }
 
 // ── INCOME for current view (period-aware) ──
