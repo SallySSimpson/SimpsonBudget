@@ -1152,6 +1152,40 @@ function getPeriodExpenses(account, month, year, period){
   }).reduce((s,t)=>s+t.amount,0);
 }
 
+// getPriorPeriodBalance: returns the closing balance of one specific period
+// (income for that period + whatever carried INTO it − expenses)
+// maxDepth prevents infinite recursion; in practice only goes 2 levels deep
+function getPriorPeriodBalance(account, month, year, period, depth){
+  if(depth===undefined) depth=0;
+  if(depth>12) return 0;
+  const inc=state.transactions.filter(tx=>
+    (account==='All'||tx.account===account) &&
+    tx.type==='income' &&
+    txBelongsToPeriod(tx,month,year,period)
+  ).reduce((s,t)=>s+t.amount,0);
+  const exp=state.transactions.filter(tx=>
+    (account==='All'||tx.account===account) &&
+    tx.type==='expense' &&
+    txBelongsToPeriod(tx,month,year,period)
+  ).reduce((s,t)=>s+t.amount,0);
+  // What carried INTO this period?
+  let pm=month, py=year, pp;
+  if(period==='1'){
+    pp='2'; pm=month-1;
+    if(pm<0){pm=11;py--;}
+  } else {
+    pp='1';
+  }
+  // Only chain back if there were actual transactions in the prior period
+  // to avoid inflating with stale allowance history
+  const priorHasTxs=state.transactions.some(tx=>
+    (account==='All'||tx.account===account)&&
+    txBelongsToPeriod(tx,pm,py,pp)
+  );
+  const priorCarry=priorHasTxs?getPriorPeriodBalance(account,pm,py,pp,depth+1):0;
+  return inc+priorCarry-exp;
+}
+
 function getCarryover(account){
   if(state.activePeriod==='all') return 0;
   const m=state.currentMonth, y=state.currentYear;
@@ -1163,17 +1197,7 @@ function getCarryover(account){
     priorMonth=m-1; priorYear=y;
     if(priorMonth<0){priorMonth=11;priorYear--;}
   }
-  const inc=state.transactions.filter(tx=>
-    (account==='All'||tx.account===account) &&
-    tx.type==='income' &&
-    txBelongsToPeriod(tx,priorMonth,priorYear,priorPeriod)
-  ).reduce((s,t)=>s+t.amount,0);
-  const exp=state.transactions.filter(tx=>
-    (account==='All'||tx.account===account) &&
-    tx.type==='expense' &&
-    txBelongsToPeriod(tx,priorMonth,priorYear,priorPeriod)
-  ).reduce((s,t)=>s+t.amount,0);
-  return inc-exp;
+  return getPriorPeriodBalance(account,priorMonth,priorYear,priorPeriod);
 }
 
 // ── INCOME for current view (period-aware) ──
