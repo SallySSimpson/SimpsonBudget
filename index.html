@@ -1154,31 +1154,26 @@ function getPeriodExpenses(account, month, year, period){
 
 function getCarryover(account){
   if(state.activePeriod==='all') return 0;
-  // Snapshot current state
-  const savedPeriod=state.activePeriod, savedMonth=state.currentMonth, savedYear=state.currentYear;
+  const m=state.currentMonth, y=state.currentYear;
   let priorPeriod, priorMonth, priorYear;
   if(state.activePeriod==='2'){
-    // Prior period = P1 of same budget month
-    priorPeriod='1'; priorMonth=savedMonth; priorYear=savedYear;
+    priorPeriod='1'; priorMonth=m; priorYear=y;
   } else {
-    // Prior period = P2 of previous budget month
     priorPeriod='2';
-    priorMonth=savedMonth-1; priorYear=savedYear;
+    priorMonth=m-1; priorYear=y;
     if(priorMonth<0){priorMonth=11;priorYear--;}
   }
-  // Compute prior period income and expenses using direct date-based filters
-  // (no state mutation — pass month/year explicitly)
-  const priorInc=state.transactions.filter(tx=>
+  const inc=state.transactions.filter(tx=>
     (account==='All'||tx.account===account) &&
     tx.type==='income' &&
     txBelongsToPeriod(tx,priorMonth,priorYear,priorPeriod)
   ).reduce((s,t)=>s+t.amount,0);
-  const priorExp=state.transactions.filter(tx=>
+  const exp=state.transactions.filter(tx=>
     (account==='All'||tx.account===account) &&
     tx.type==='expense' &&
     txBelongsToPeriod(tx,priorMonth,priorYear,priorPeriod)
   ).reduce((s,t)=>s+t.amount,0);
-  return priorInc-priorExp;
+  return inc-exp;
 }
 
 // ── INCOME for current view (period-aware) ──
