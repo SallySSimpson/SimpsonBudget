@@ -650,9 +650,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
     <div style="padding:16px 0 10px;font-family:'Playfair Display',serif;font-size:16px;font-weight:500;color:var(--tp);" id="txnsViewTitle">All Transactions</div>
     <!-- Period filter bar for Transactions tab -->
     <div style="display:flex;background:var(--card);border-radius:14px;padding:3px;border:1px solid var(--border);margin-bottom:12px;">
-      <button class="txns-period-btn active" data-period="all" onclick="setTxnsPeriod('all')">Full Month</button>
-      <button class="txns-period-btn" data-period="1" onclick="setTxnsPeriod('1')">Period 1 · 15–29</button>
-      <button class="txns-period-btn" data-period="2" onclick="setTxnsPeriod('2')">Period 2 · 30–14</button>
+      <button class="txns-period-btn active" data-period="all" id="txnsPeriodAll">Full Month</button>
+      <button class="txns-period-btn" data-period="1" id="txnsPeriod1">Period 1 · 15–29</button>
+      <button class="txns-period-btn" data-period="2" id="txnsPeriod2">Period 2 · 30–14</button>
     </div>
     <div class="tx-list" id="txListTxns"></div>
     <div class="spacer"></div>
@@ -2222,6 +2222,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('periodAll').addEventListener('click',()=>{state.activePeriod='all';saveUIState();renderAll();});
   document.getElementById('period1').addEventListener('click',()=>{state.activePeriod='1';saveUIState();renderAll();});
   document.getElementById('period2').addEventListener('click',()=>{state.activePeriod='2';saveUIState();renderAll();});
+
+  // Txns tab period filter buttons
+  document.getElementById('txnsPeriodAll').addEventListener('click',()=>setTxnsPeriod('all'));
+  document.getElementById('txnsPeriod1').addEventListener('click',()=>setTxnsPeriod('1'));
+  document.getElementById('txnsPeriod2').addEventListener('click',()=>setTxnsPeriod('2'));
 
   // Bottom nav
   document.getElementById('navHome').addEventListener('click',()=>switchView('home'));
