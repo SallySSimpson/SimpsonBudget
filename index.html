@@ -48,32 +48,32 @@
 .sync-indicator.offline{background:var(--coral);opacity:1;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
 :root{
-  /* ── DARK FITNESS PALETTE ── */
-  --bg:#0D1520;          /* page background — near black */
-  --card:#17243F;        /* elevated card surface — nautical navy */
-  --card2:#1C2D4F;       /* slightly lighter card variant */
-  --navy:#17243F;        /* kept for compat */
-  --navy-deep:#0D1520;   /* kept for compat */
-  --navy-mid:#5C82A8;    /* mid blue */
+  /* ── OPTION A — Dark / Lime ── */
+  --bg:#0A0F1E;
+  --card:#1A2340;
+  --card2:#1F2A4A;
+  --navy:#1A2340;
+  --navy-deep:#0A0F1E;
+  --navy-mid:#5C82A8;
   --mist:#5C82A8;
-  --mist-light:#1A2F4A;  /* subtle inner surface */
-  --ivory:#0D1520;
-  --ivory-warm:#17243F;
-  --seafoam:#5C82A8;
+  --mist-light:#1A2F4A;
+  --ivory:#0A0F1E;
+  --ivory-warm:#1A2340;
+  --seafoam:#C6F135;
   --seafoam-lt:#1A2F4A;
-  --seafoam-text:#DFF478;   /* lime for income/positive */
-  --coral:#FF7B7B;           /* red for expenses */
+  --seafoam-text:#C6F135;
+  --coral:#FF6B6B;
   --coral-lt:#FF9B9B;
-  --coral-text:#FF7B7B;
-  --gold:#DFF478;            /* lime accent = gold role */
-  --gold-lt:#EAF89A;
-  --accent:#DFF478;          /* Soothing Lime — THE accent color */
-  --accent-dim:rgba(223,244,120,0.12);
-  --tp:#FFFFFF;              /* primary text */
-  --ts:#92BAD5;              /* secondary text — Floral Blue */
-  --tm:#4A6680;              /* muted text */
-  --border:#1E3054;
-  --sh:0 2px 16px rgba(0,0,0,0.5);
+  --coral-text:#FF6B6B;
+  --gold:#C6F135;
+  --gold-lt:#D8F760;
+  --accent:#C6F135;
+  --accent-dim:rgba(198,241,53,0.12);
+  --tp:#FFFFFF;
+  --ts:#92BAD5;
+  --tm:#4A6680;
+  --border:rgba(255,255,255,0.08);
+  --sh:0 2px 20px rgba(0,0,0,0.6);
   --r:14px;--rsm:10px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -90,13 +90,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
 /* ── HEADER ── */
 .top-header{background:var(--bg);padding:16px 16px 20px;position:relative;overflow:hidden;}
 .top-header::before{content:'';position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;background:rgba(214,228,238,0.05);}
-.money-motif{position:absolute;right:64px;top:4px;pointer-events:none;}
 .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;position:relative;z-index:1;}
 .app-name{font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:white;}
 .app-tagline{font-size:10px;color:rgba(214,228,238,0.6);letter-spacing:0.04em;margin-top:1px;}
 .avatar{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--accent);overflow:hidden;flex-shrink:0;cursor:pointer;background:var(--card);}
 .avatar img{width:100%;height:100%;object-fit:cover;object-position:center 10%;}
-.avatar-initials{display:none;}
+.avatar-initials{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--accent);}
 .month-row{display:flex;align-items:center;gap:8px;position:relative;z-index:1;}
 .month-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.5);font-size:18px;line-height:1;padding:2px 4px;}
 .month-pill{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:7px 14px;}
@@ -112,7 +111,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
 .period-wrap{padding:10px 16px 6px;}
 .period-bar{display:flex;background:var(--card);border-radius:16px;padding:3px;border:1px solid var(--border);}
 .period-btn{flex:1;padding:6px;border:none;border-radius:13px;font-family:'Inter',sans-serif;font-size:11px;font-weight:500;cursor:pointer;background:transparent;color:var(--ts);transition:all 0.2s;text-align:center;}
-.period-btn.active{background:var(--card2);color:var(--accent);}
+.period-btn.active{background:rgba(198,241,53,0.15);color:var(--accent);border:1px solid rgba(198,241,53,0.3);}
 
 /* ── CARRYOVER BANNER ── */
 .carryover-banner{margin:0 16px 8px;background:var(--bg);border:1px solid rgba(223,244,120,0.25);border-radius:12px;padding:10px 14px;display:none;align-items:center;justify-content:space-between;}
@@ -121,7 +120,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
 .carryover-amt{font-family:'Playfair Display',serif;font-size:16px;color:var(--accent);}
 
 /* ── SCRIPTURE ── */
-.scripture-wrap{margin:10px 16px 0;padding:14px 18px;border-radius:var(--r);background:var(--card);border:1px solid var(--border);text-align:center;}
+.scripture-wrap{border-left:3px solid var(--accent);background:rgba(198,241,53,0.06);margin:10px 16px 0;padding:14px 18px;border-radius:var(--r);background:var(--card);border:1px solid var(--border);text-align:center;}
 .scripture-ref{font-size:9px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
 .scripture-text{font-family:'Playfair Display',serif;font-size:13px;font-style:italic;color:var(--ts);line-height:1.65;}
 .scripture-text em{font-style:normal;color:var(--tp);font-weight:600;}
@@ -252,7 +251,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;padding:6px 0;}
 .nav-item svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;}
 .nav-item span{font-size:9px;font-weight:500;}
-.nav-item.active{color:var(--accent);}
+.nav-item.active{color:#C6F135;}
 .nav-item:not(.active){color:var(--tm);}
 .nav-active-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);margin-top:1px;}
 
@@ -470,43 +469,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
 <!-- ── HEADER ── -->
 <div class="app-header">
 <div class="top-header">
-  <!-- Gold coin stack illustration -->
-  <svg class="money-motif" width="72" height="90" viewBox="0 0 72 90" fill="none">
-    <!-- Shadow -->
-    <ellipse cx="36" cy="86" rx="28" ry="5" fill="rgba(0,0,0,0.18)"/>
-    <!-- Coin 1 – bottom -->
-    <ellipse cx="36" cy="74" rx="28" ry="8" fill="#8B6A1A"/>
-    <ellipse cx="36" cy="71" rx="28" ry="8" fill="#C4A55A"/>
-    <ellipse cx="36" cy="70" rx="28" ry="8" fill="#EDD98A"/>
-    <ellipse cx="36" cy="69" rx="26" ry="6.5" fill="#C4A55A"/>
-    <!-- Coin 2 -->
-    <ellipse cx="36" cy="58" rx="28" ry="8" fill="#8B6A1A"/>
-    <ellipse cx="36" cy="55" rx="28" ry="8" fill="#C4A55A"/>
-    <ellipse cx="36" cy="54" rx="28" ry="8" fill="#EDD98A"/>
-    <ellipse cx="36" cy="53" rx="26" ry="6.5" fill="#C4A55A"/>
-    <!-- Coin 3 -->
-    <ellipse cx="36" cy="42" rx="28" ry="8" fill="#8B6A1A"/>
-    <ellipse cx="36" cy="39" rx="28" ry="8" fill="#C4A55A"/>
-    <ellipse cx="36" cy="38" rx="28" ry="8" fill="#EDD98A"/>
-    <ellipse cx="36" cy="37" rx="26" ry="6.5" fill="#C4A55A"/>
-    <!-- Coin 4 – top -->
-    <ellipse cx="36" cy="26" rx="28" ry="8" fill="#8B6A1A"/>
-    <ellipse cx="36" cy="23" rx="28" ry="8" fill="#C4A55A"/>
-    <ellipse cx="36" cy="22" rx="28" ry="8" fill="#F5E4A0"/>
-    <ellipse cx="36" cy="21" rx="26" ry="6.5" fill="#EDD98A"/>
-    <!-- $ on top coin -->
-    <text x="36" y="25" text-anchor="middle" font-size="11" fill="#8B6A1A" font-family="Georgia,serif" font-weight="700">$</text>
-    <!-- Shine on top coin -->
-    <ellipse cx="28" cy="19" rx="6" ry="2.5" fill="rgba(255,255,255,0.35)" transform="rotate(-20,28,19)"/>
-  </svg>
   <div class="header-row">
     <div>
       <div class="app-name">Simpson Budget</div>
       <div class="app-tagline">Steward faithfully. Build wisely. Give generously.</div>
     </div>
     <div class="avatar" id="btnSignOut" title="Sign out">
-      <img id="avatarImg" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDAgQDAwMEBAQFBgoGBgUFBgwICQcKDgwPDg4MDQ0PERYTDxAVEQ0NExoTFRcYGRkZDxIbHRsYHRYYGRj/2wBDAQQEBAYFBgsGBgsYEA0QGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBj/wAARCABMAEwDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD7+ooooAKKKyfE+vWnhbwXqviS+Utb6daS3ciqcFgilto9zjH40Acj8UPjh8NvhBbW58a6+tvdXILW9hbxme5lUHBYRryFz/EcDjGa0vhz8VPAvxW8Oyaz4I12LUYYWCXEJUxzW7EZAkjbDLnsehwcE1+fekvaa/jTxrqPi7xYF1XWNRl3XE03KRjosMSn7saLhQPbJ5Jq34Xmu/gb4/wBL+I/hd3t7JJEg1nSwx8u5tHYBsD1X7w9CAR3zxrGRc+Q9F5bU9l7Q/SuimQyxz26TROHjdQysOhBGQafXYecFFFFABRRRQAVwXxqmgg+AXik3MMssctk0GyLGcyMEB57AsCT6Zrva8/8AjbLfw/AzXZdPlWN1SLzCVBzF5qB159VyKTaSuxxTbSW5+fVn4vk0bV7nT9XsY5t0qpbiykErF2OArA4OT+XB9KsW2vXnja8bwjqdlDHd6hHLFZmKZGWSRFLbGG75CQDjPBIxVmHSPD8viq6v/Edxp+nStbtJa4EkhBJADk7flwSAPYnnGca+leErbRoINU1PT7FGi89xHDIJWlIX727aNuOcd8ntivFqSoqbaWv9bH01CGJlSSb0/rf9D9DPD9u1p4U0y1c5aK0ijJ9SEA/pWjXJ/DK81fUPhB4dv9dnee/uLGOWWVwAz7hlS2O5Arn3rrK9mEuaKl3Pm6kHCbi+jCiiiqICiivJv2iPi2fhD8GrnWrDyn1y9cWWlxyDK+cwyZGHdUUFsdzgd6HoNK+ht+PvjT8MvhlPFbeM/FlpYXcvKWiK08+P7xjjBZV9yAKhuPFPg/4u/BbXH8E63aa9b3VjPFGLVyHEgU7QynDKdwXqBX52/Dz4ZXvxOvL3xr42ubrUzeSNKrzTHfMxPMjN1ye3tjtWT414w8V6h4p8Iaha+INWutRxJ8rzSFYoVzjbGg4Uf/AFzmuKOOp1a3sU9T0JZdVhQ+sNaHQ6Nfadqri81rWLOxaQhbKOeWZGbHoE4DZByDk9OK3x8QdH0vxVoNp4xdJrOO7jh1BYXxmBnAZtwxg4O44x0PSvKtf+NOmz/ABDXWtA0O0trK/ul1OO0lQSC2mliVp40z0AmMuPY1534g8Q3viHWp7+4CIZSWEaLhVHc49Kj6red3sdCzBKjyx+I/b6yitoNNt4LIILaONUiCHK7AAFx7YxU9fGH7Ln7W/hi5+H+ifD74i3kmnavYhdPtNRkj/0eaEfLCJHB+Rwu1SxGDgEnk19nKyuoZSCCMgjvXejx33FooopiCvgv9vTVLu/+J/hTwjAJJt2nGSKBTj97NMY8j3woFfeFxcQWlpLdXMqQwxIZJJHOFRQMkk9gAK/Nj4rePNL+Jn7behoapjPNa2kgiWSQbQ8cYd0wvYc7ueTu7cCsq0+SDl2RtQhz1Ix7tHf+ALDUPCuiz2uoaXFafZbRFD2ygJKFAA49eoyeeM968w/aEuotY0jQAzWskzXM3NsT0VDlXU5wwJHTg57civfbDUPtEBeSxju4ZeWu4p1ZNmMBSuc/wB7kelfNXx4Xw5oXxE0mw0dUjmuBNcXGDjLHADH3JHWvlsDWc8X7y1/4B9jjaXJgnyvT/go+ctZ02bSLyCR02+cu9c9xxz+tOt0V4i0nO7nJOWNM17ULrUVtp7iXdtLoqf3ACKdpqZjyefc19Yj4uWj0NOwleCZdq/KO1fUf7P37TPir4e+JtM0LxNq9zqfg6V1t5YLtzK9gpOBJEx5CrnJTOMZwAa+YbaMeYK10LGIIuB6nFU0KL6M/a6ORJYVlidXRgGVlOQQehBp1eFfsl+Prvxx+ztZQanMJb/Q5TpUj5+Z40VTEx99jBc99te60Cas7HKfE3WNL0D4NeKdY1qIS2Ftpdw88RO3zF8sjZntuyB+Nfjr4Y8Wf2P8ZNE1/UZz5Ed6BM7dPJbKMT9AxP4V+rn7TcCXH7JXjuGQsFOmMTtODw6H+lfkJqFnHLb2hd3wRJxxxhvpUVIqUXF9SqcnCSkuh93+I7ix8OaRb6imqWKWix5WS3Ij3pjo5Bw69wcZz3r408X62/j34lXeuQ+Y9nb/7mJiDucDPzD0OTkD0r1C+tIT+zrpV4ylpI9Oj25OQO2cfQV4dpU0kHh3UPKbYS20kdTkD9eTXjZfhkpyqyd2tD38zxkpU4UUrJ6sw9QWaO8EUy7GNU2decetbGmpthHFUP+PpL6SUDdEECY4xghf5VtWqAQjIr2Yt8qPBluy+ckHnr+taN0gWLiqCBQ+SOvT8as3bhYBivQgYyepGkjGqmolTk8fzrSq9bIBGCK6aZ5tRajJbAGPg1r2T/ALoZ5BFY7D5R7frV/T5flIzXVSep51RaHZfsvX82l/tU6bBG+Ib/AE+8gkHqAqOP1UV+j9fmv+ylc3Fv+1HZQxPhLixu45B6gKrj9VFfpREJBGolIL4G4gc5rRHPM//Z" alt="S&R" />
-      <span class="avatar-initials" id="avatarInitial" style="display:none;">S</span>
+      <span class="avatar-initials" id="avatarInitial">S</span>
     </div>
   </div>
   <div class="month-row">
@@ -571,10 +540,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
       </div>
     </div>
   </div>
-
-  <!-- Upcoming Bills -->
-  <div class="sec-hdr"><div class="sec-title">Upcoming Bills</div><button class="sec-link" id="btnGoToBills">See all</button></div>
-  <div class="upcoming-scroll" id="upcomingMini"></div>
 
   <!-- Spending (always visible) -->
   <div class="sec-hdr"><div class="sec-title">Spending</div></div>
@@ -959,7 +924,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 // ── CONSTANTS ──
-const PIE_COLORS=['#DFF478','#92BAD5','#5C82A8','#FF7B7B','#5DA8A0','#C4A55A','#EDD98A','#A78BFA','#34D399','#F59E0B','#60A5FA','#FB7185','#A3E635'];
+const PIE_COLORS=['#C6F135','#92BAD5','#5C82A8','#FF6B6B','#34D399','#FBBF24','#A78BFA','#60A5FA','#F59E0B','#FB7185','#5DA8A0','#EDD98A','#A3E635'];
 const INCOME_CATS=['Salary','Paycheck','Allowance from Joint','Refund','Gift','Bonus','Misc','Other'];
 const EXPENSE_CATS=['Rent','Tesla Car Note','Mercedes Car Note','Car Insurance','Tithes','Groceries','Food','Eating Out',"Sally's Allowance","Ray's Allowance",'Utilities','Medicine/Vitamins','Fuel','Car Charge','Personal Things','Shopping','Gifts','Misc','Credit Card Payment','Date Night','Toll','Netflix','Subscriptions','Hair & Beauty','Phone Bill','Internet','Other'];
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1386,10 +1351,10 @@ function drawPie(txs,canvasId,legendId){
   const entries=Object.entries(catT).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
   const total=entries.reduce((s,[,v])=>s+v,0);
   const legEl=document.getElementById(legendId);
-  if(!entries.length){ctx.fillStyle='#1A2F4A';ctx.beginPath();ctx.arc(sz/2,sz/2,sz/2-3,0,Math.PI*2);ctx.fill();if(legEl)legEl.innerHTML='<div class="empty" style="padding:8px 0;">No expenses</div>';return;}
+  if(!entries.length){ctx.fillStyle='#1A2340';ctx.beginPath();ctx.arc(sz/2,sz/2,sz/2-3,0,Math.PI*2);ctx.fill();if(legEl)legEl.innerHTML='<div class="empty" style="padding:8px 0;">No expenses</div>';return;}
   const cx=sz/2,cy=sz/2,r=sz/2-3,inner=r*0.54;let angle=-Math.PI/2;
   entries.forEach(([,val],i)=>{const slice=(val/total)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,angle,angle+slice);ctx.closePath();ctx.fillStyle=PIE_COLORS[i%PIE_COLORS.length];ctx.fill();ctx.strokeStyle='#0D1520';ctx.lineWidth=1.5;ctx.stroke();angle+=slice;});
-  ctx.beginPath();ctx.arc(cx,cy,inner,0,Math.PI*2);ctx.fillStyle='#17243F';ctx.fill();
+  ctx.beginPath();ctx.arc(cx,cy,inner,0,Math.PI*2);ctx.fillStyle='#1A2340';ctx.fill();
   ctx.fillStyle='#FFFFFF';ctx.font='600 11px Inter,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
   const income=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const pct=income>0?Math.round((total/income)*100):0;
@@ -1629,7 +1594,6 @@ function renderHome(){
   document.getElementById('homePctLbl').textContent=pct+'% of budget used';
   document.getElementById('homeDaysLeft').textContent=daysLeft();
 
-  renderUpcomingMini();
   drawPie(getAllMonthTxs(acct),'pieHome','legendHome');
 
   // Money at a Glance
@@ -2109,7 +2073,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('navTxns').addEventListener('click',()=>switchView('txns'));
   document.getElementById('navBills').addEventListener('click',()=>switchView('bills'));
   document.getElementById('navReports').addEventListener('click',()=>switchView('reports'));
-  document.getElementById('btnGoToBills').addEventListener('click',()=>switchView('bills'));
 
   // Bills calendar month nav
   document.getElementById('btnBillsCalPrev').addEventListener('click',()=>{
@@ -2207,7 +2170,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
     await saveBill(bill);
     document.getElementById('addBillModal').classList.remove('open');
-    renderBillsList();renderBillsCalendar();renderUpcomingMini();
+    renderBillsList();renderBillsCalendar();
   });
   document.getElementById('btnCancelBill').addEventListener('click',()=>document.getElementById('addBillModal').classList.remove('open'));
 
