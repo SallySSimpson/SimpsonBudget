@@ -236,6 +236,37 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 .nav-item.active{color:var(--navy);}
 .nav-item:not(.active){color:var(--tm);}
 
+/* ── REPORTS VIEW ── */
+.reports-header{padding:16px 16px 0;}
+.reports-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--navy-deep);margin-bottom:4px;}
+.reports-sub{font-size:11px;color:var(--tm);}
+.reports-controls{padding:12px 16px;display:flex;flex-direction:column;gap:10px;}
+.reports-range-row{display:flex;gap:6px;}
+.range-btn{flex:1;padding:7px 4px;border:1px solid var(--border);border-radius:20px;background:white;font-family:'Inter',sans-serif;font-size:11px;font-weight:500;color:var(--tm);cursor:pointer;transition:all 0.15s;}
+.range-btn.active{background:var(--navy);color:white;border-color:var(--navy);}
+.reports-acct-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;}
+.reports-acct-row::-webkit-scrollbar{display:none;}
+.rpt-acct-btn{flex-shrink:0;padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:white;font-size:11px;font-weight:500;color:var(--tm);cursor:pointer;transition:all 0.15s;}
+.rpt-acct-btn.active{background:var(--navy);color:white;border-color:var(--navy);}
+.reports-section{margin:0 16px 16px;}
+.reports-section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--tm);margin-bottom:8px;padding-top:4px;}
+.reports-table-wrap{overflow-x:auto;border-radius:var(--rsm);border:1px solid var(--border);background:white;}
+.reports-table{width:100%;border-collapse:collapse;font-size:11px;}
+.reports-table th{background:var(--mist-light);padding:8px 10px;text-align:right;font-weight:600;color:var(--tp);white-space:nowrap;border-bottom:1px solid var(--border);}
+.reports-table th:first-child{text-align:left;position:sticky;left:0;background:var(--mist-light);z-index:2;min-width:100px;}
+.reports-table td{padding:7px 10px;text-align:right;color:var(--tp);border-bottom:1px solid rgba(0,0,0,0.04);white-space:nowrap;}
+.reports-table td:first-child{text-align:left;position:sticky;left:0;background:white;z-index:1;font-weight:500;}
+.reports-table tr:last-child td{border-bottom:none;}
+.reports-table tr.total-row td{font-weight:700;background:var(--mist-light);border-top:1px solid var(--border);}
+.reports-table tr.total-row td:first-child{background:var(--mist-light);}
+.reports-table td.avg-col{color:var(--navy-mid);font-weight:600;}
+.reports-table td.annual-col{color:var(--navy-deep);font-weight:700;}
+.reports-table th.avg-col,.reports-table th.annual-col{background:var(--mist);}
+.rpt-zero{color:var(--ts);}
+.rpt-income-section .reports-table td:not(:first-child){color:var(--seafoam-text,#2a7a6e);}
+.rpt-income-section .reports-table tr.total-row td:not(:first-child){color:var(--seafoam-text,#2a7a6e);}
+.reports-empty{text-align:center;padding:32px 16px;color:var(--tm);font-size:13px;}
+
 /* ── MODALS ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(11,29,51,0.55);z-index:300;align-items:flex-end;backdrop-filter:blur(2px);}
 .modal-overlay.open{display:flex;}
@@ -536,6 +567,23 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
 
 
 
+
+<div id="viewReports" class="view">
+  <div class="reports-header">
+    <div class="reports-title">Reports</div>
+    <div class="reports-sub">Spending & income by category over time</div>
+  </div>
+  <div class="reports-controls">
+    <div class="reports-range-row">
+      <button class="range-btn active" data-range="3">3 Months</button>
+      <button class="range-btn" data-range="6">6 Months</button>
+      <button class="range-btn" data-range="12">12 Months</button>
+    </div>
+    <div class="reports-acct-row" id="rptAcctRow"></div>
+  </div>
+  <div id="reportsContent"></div>
+</div>
+
 </div><!-- end app-body -->
 
 <!-- ── BOTTOM NAV ── -->
@@ -547,6 +595,10 @@ body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--tp);-web
   <button class="nav-item" id="navBills">
     <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2m-4 0V3m4 2V3M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
     <span>Bills</span>
+  </button>
+  <button class="nav-item" id="navReports">
+    <svg viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    <span>Reports</span>
   </button>
 </div>
 
@@ -938,7 +990,7 @@ async function loadAllFromSupabase(){
     }
     setSyncState('online');
     renderAll();
-    const validView=['home','bills'].includes(state.activeView)?state.activeView:'home';
+    const validView=['home','bills','reports'].includes(state.activeView)?state.activeView:'home';
     switchView(validView);
   }catch(e){console.error('Load error',e);setSyncState('offline');renderAll();}
 }
@@ -1582,14 +1634,148 @@ function renderAccountTabs(){
   });
 }
 
+// ── REPORTS ──
+const MONTHS_SHORT=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function getReportsState(){
+  if(!state._reports) state._reports={range:3,account:'All'};
+  return state._reports;
+}
+
+function renderReports(){
+  const rs=getReportsState();
+  // Render account filter buttons
+  const acctRow=document.getElementById('rptAcctRow');
+  if(acctRow){
+    const accts=['All',...state.accounts];
+    acctRow.innerHTML=accts.map(a=>
+      `<button class="rpt-acct-btn${rs.account===a?' active':''}" data-acct="${a}">${a==='All'?'All Accounts':a}</button>`
+    ).join('');
+    acctRow.querySelectorAll('.rpt-acct-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{rs.account=btn.dataset.acct;renderReports();});
+    });
+  }
+  // Sync range buttons
+  document.querySelectorAll('.range-btn').forEach(btn=>{
+    btn.classList.toggle('active',parseInt(btn.dataset.range)===rs.range);
+    btn.onclick=()=>{rs.range=parseInt(btn.dataset.range);renderReports();};
+  });
+
+  const el=document.getElementById('reportsContent');
+  if(!el) return;
+
+  // Build list of months to show (most recent first → reverse for display)
+  const months=[];
+  let cm=state.currentMonth, cy=state.currentYear;
+  // Always include up through the currently viewed month
+  for(let i=0;i<rs.range;i++){
+    months.unshift({month:cm,year:cy});
+    cm--; if(cm<0){cm=11;cy--;}
+  }
+
+  const acct=rs.account;
+
+  // For each month, sum expenses and income by category across both periods
+  function getMonthData(month,year,type){
+    const cats={};
+    state.transactions.filter(tx=>{
+      if((acct!=='All')&&tx.account!==acct) return false;
+      if(tx.type!==type) return false;
+      const d=new Date(tx.date+'T12:00:00');
+      // Full budget month = P1 (15th–29th) + P2 (30th–14th next)
+      // For reporting we use calendar month of the date
+      return d.getMonth()===month && d.getFullYear()===year;
+    }).forEach(tx=>{
+      cats[tx.category]=(cats[tx.category]||0)+tx.amount;
+    });
+    return cats;
+  }
+
+  // Gather all categories that appear in range
+  const expCatSet=new Set(), incCatSet=new Set();
+  months.forEach(({month,year})=>{
+    Object.keys(getMonthData(month,year,'expense')).forEach(c=>expCatSet.add(c));
+    Object.keys(getMonthData(month,year,'income')).forEach(c=>incCatSet.add(c));
+  });
+  const expCats=[...expCatSet].sort();
+  const incCats=[...incCatSet].sort();
+
+  function buildTable(cats,type,sectionClass){
+    if(!cats.length) return `<div class="reports-empty">No ${type} data in this range.</div>`;
+    // monthData[i] = {cat: amount}
+    const monthData=months.map(({month,year})=>getMonthData(month,year,type));
+    const colHeaders=months.map(({month,year})=>
+      `<th>${MONTHS_SHORT[month]}<br><span style="font-weight:400;font-size:9px;opacity:0.7">${year}</span></th>`
+    ).join('');
+
+    const rows=cats.map(cat=>{
+      const vals=monthData.map(md=>md[cat]||0);
+      const avg=vals.reduce((s,v)=>s+v,0)/vals.length;
+      const annual=vals.reduce((s,v)=>s+v,0)*(12/rs.range);
+      const cells=vals.map(v=>
+        `<td>${v>0?fmt(v):`<span class="rpt-zero">—</span>`}</td>`
+      ).join('');
+      return `<tr>
+        <td>${cat}</td>
+        ${cells}
+        <td class="avg-col">${fmt(avg)}</td>
+        <td class="annual-col">${fmt(annual)}</td>
+      </tr>`;
+    }).join('');
+
+    // Totals row
+    const totals=months.map((_,i)=>cats.reduce((s,cat)=>s+(monthData[i][cat]||0),0));
+    const totalAvg=totals.reduce((s,v)=>s+v,0)/totals.length;
+    const totalAnnual=totals.reduce((s,v)=>s+v,0)*(12/rs.range);
+    const totalCells=totals.map(v=>`<td>${fmt(v)}</td>`).join('');
+
+    return `<div class="reports-table-wrap ${sectionClass}">
+      <table class="reports-table">
+        <thead><tr>
+          <th>Category</th>
+          ${colHeaders}
+          <th class="avg-col">Avg/mo</th>
+          <th class="annual-col">Annual Est.</th>
+        </tr></thead>
+        <tbody>
+          ${rows}
+          <tr class="total-row">
+            <td>Total</td>
+            ${totalCells}
+            <td class="avg-col">${fmt(totalAvg)}</td>
+            <td class="annual-col">${fmt(totalAnnual)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  const expHTML=buildTable(expCats,'expense','');
+  const incHTML=buildTable(incCats,'income','rpt-income-section');
+
+  el.innerHTML=`
+    <div class="reports-section">
+      <div class="reports-section-title">💸 Spending by Category</div>
+      ${expHTML}
+    </div>
+    <div class="reports-section">
+      <div class="reports-section-title">💰 Income by Category</div>
+      ${incHTML}
+    </div>
+  `;
+}
+
 // ── NAV ──
 function switchView(view){
   state.activeView=view;saveUIState();
-  ['home','bills'].forEach(v=>{
-    document.getElementById('view'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',v===view);
-    document.getElementById('nav'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',v===view);
+  ['home','bills','reports'].forEach(v=>{
+    const vEl=document.getElementById('view'+v.charAt(0).toUpperCase()+v.slice(1));
+    const nEl=document.getElementById('nav'+v.charAt(0).toUpperCase()+v.slice(1));
+    if(vEl) vEl.classList.toggle('active',v===view);
+    if(nEl) nEl.classList.toggle('active',v===view);
   });
   document.getElementById('appBody').scrollTop=0;
+  if(view==='reports') renderReports();
 }
 
 // ── TRANSACTION MODAL ──
@@ -1722,6 +1908,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Bottom nav
   document.getElementById('navHome').addEventListener('click',()=>switchView('home'));
   document.getElementById('navBills').addEventListener('click',()=>switchView('bills'));
+  document.getElementById('navReports').addEventListener('click',()=>switchView('reports'));
   document.getElementById('btnGoToBills').addEventListener('click',()=>switchView('bills'));
 
   // Edit budget — stop propagation so it doesn't also collapse the section
