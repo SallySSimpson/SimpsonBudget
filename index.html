@@ -120,10 +120,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
 .carryover-amt{font-family:'Playfair Display',serif;font-size:16px;color:var(--accent);}
 
 /* ── SCRIPTURE ── */
-.scripture-wrap{border-left:3px solid var(--accent);background:rgba(198,241,53,0.06);margin:10px 16px 0;padding:14px 18px;border-radius:var(--r);background:var(--card);border:1px solid var(--border);text-align:center;}
-.scripture-ref{font-size:9px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
-.scripture-text{font-family:'Playfair Display',serif;font-size:13px;font-style:italic;color:var(--ts);line-height:1.65;}
-.scripture-text em{font-style:normal;color:var(--tp);font-weight:600;}
+.scripture-wrap{margin:10px 16px 0;padding:16px 18px 14px;border-radius:var(--r);background:linear-gradient(135deg,rgba(198,241,53,0.13) 0%,rgba(198,241,53,0.06) 100%);border:1px solid rgba(198,241,53,0.28);box-shadow:0 0 0 1px rgba(198,241,53,0.08) inset,0 4px 16px rgba(0,0,0,0.3);text-align:center;position:relative;overflow:hidden;}
+.scripture-wrap::before{content:'\201C';position:absolute;top:-4px;left:12px;font-family:'Playfair Display',serif;font-size:52px;color:rgba(198,241,53,0.18);line-height:1;pointer-events:none;}
+.scripture-ref{font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;opacity:0.9;}
+.scripture-text{font-family:'Playfair Display',serif;font-size:13.5px;font-style:italic;color:rgba(255,255,255,0.82);line-height:1.7;}
+.scripture-text em{font-style:normal;color:#E8FF8A;font-weight:600;}
 
 /* ── SUMMARY CARD ── */
 .summary-card{margin:10px 16px 0;background:var(--card);border-radius:var(--r);padding:16px;border:1px solid var(--border);box-shadow:var(--sh);}
@@ -207,6 +208,30 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
 .totals-bar-fill{height:100%;background:var(--ts);border-radius:2px;}
 .totals-amt{font-size:12px;font-weight:600;color:var(--tp);min-width:50px;text-align:right;}
 .totals-pct{font-size:10px;color:var(--tm);min-width:26px;text-align:right;margin-left:4px;}
+
+/* ── VERTICAL BAR CHART (Monthly Totals) ── */
+.vbar-chart-wrap{margin:0 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;box-shadow:var(--sh);}
+.vbar-chart{display:flex;align-items:flex-end;gap:5px;height:120px;margin-bottom:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+.vbar-chart::-webkit-scrollbar{display:none;}
+.vbar-col{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:36px;}
+.vbar-fill-wrap{flex:1;display:flex;flex-direction:column;justify-content:flex-end;width:100%;}
+.vbar-fill{border-radius:4px 4px 0 0;min-height:3px;transition:height 0.4s ease;width:100%;}
+.vbar-fill.expense{background:linear-gradient(180deg,var(--coral-lt) 0%,var(--coral) 100%);}
+.vbar-fill.income{background:linear-gradient(180deg,#C6F135 0%,#a0cc10 100%);}
+.vbar-lbl{font-size:9px;font-weight:600;color:var(--tm);text-align:center;white-space:nowrap;}
+.vbar-amt{font-size:8px;color:var(--ts);text-align:center;font-weight:500;}
+.vbar-legend{display:flex;gap:12px;margin-top:4px;justify-content:flex-end;}
+.vbar-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ts);}
+.vbar-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+
+/* ── SPENDING BY MONTH BAR CHART ── */
+.spend-month-chart{margin:0 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;box-shadow:var(--sh);}
+.spend-month-bars{display:flex;align-items:flex-end;gap:4px;height:100px;margin:8px 0 4px;}
+.spend-month-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:28px;}
+.spend-month-bar{border-radius:3px 3px 0 0;min-height:2px;width:100%;background:linear-gradient(180deg,rgba(198,241,53,0.9) 0%,rgba(160,204,16,0.9) 100%);transition:height 0.4s ease;}
+.spend-month-bar.current{background:linear-gradient(180deg,#FF6B6B 0%,#e04040 100%);}
+.spend-month-lbl{font-size:8px;color:var(--tm);font-weight:600;text-align:center;}
+.spend-month-val{font-size:7px;color:var(--ts);text-align:center;}
 
 /* ── TRANSACTIONS ── */
 .tx-list{margin:0 16px;display:flex;flex-direction:column;gap:1px;background:var(--border);border-radius:var(--r);overflow:hidden;border:1px solid var(--border);box-shadow:var(--sh);}
@@ -470,9 +495,51 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
 <div class="app-header">
 <div class="top-header">
   <div class="header-row">
-    <div>
-      <div class="app-name">Simpson Budget</div>
-      <div class="app-tagline">Steward faithfully. Build wisely. Give generously.</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="money-stack-icon" title="Simpson Budget">
+        <svg width="36" height="36" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Stack shadow -->
+          <ellipse cx="32" cy="56" rx="22" ry="4" fill="rgba(0,0,0,0.35)"/>
+          <!-- Bottom bill -->
+          <rect x="6" y="42" width="52" height="14" rx="3" fill="#1a6b2a"/>
+          <rect x="6" y="42" width="52" height="14" rx="3" fill="url(#bill3)"/>
+          <rect x="6" y="42" width="52" height="14" rx="3" stroke="#2d8a3e" stroke-width="0.5"/>
+          <!-- Middle bill -->
+          <rect x="7" y="34" width="50" height="14" rx="3" fill="#1d7a30"/>
+          <rect x="7" y="34" width="50" height="14" rx="3" fill="url(#bill2)"/>
+          <rect x="7" y="34" width="50" height="14" rx="3" stroke="#2d9a3e" stroke-width="0.5"/>
+          <!-- Top bill -->
+          <rect x="8" y="26" width="48" height="14" rx="3" fill="#22922f"/>
+          <rect x="8" y="26" width="48" height="14" rx="3" fill="url(#bill1)"/>
+          <rect x="8" y="26" width="48" height="14" rx="3" stroke="#3ab84d" stroke-width="0.5"/>
+          <!-- Bill details top -->
+          <rect x="14" y="29" width="10" height="8" rx="1.5" fill="rgba(0,0,0,0.2)"/>
+          <text x="19" y="35" font-family="serif" font-size="6" font-weight="bold" fill="rgba(255,255,255,0.85)" text-anchor="middle">$</text>
+          <rect x="40" y="29" width="10" height="8" rx="1.5" fill="rgba(0,0,0,0.2)"/>
+          <text x="45" y="35" font-family="serif" font-size="6" font-weight="bold" fill="rgba(255,255,255,0.85)" text-anchor="middle">$</text>
+          <text x="32" y="35.5" font-family="serif" font-size="7" font-weight="bold" fill="rgba(198,241,53,0.9)" text-anchor="middle">100</text>
+          <!-- Rubber band -->
+          <rect x="28" y="25" width="8" height="17" rx="2" fill="none" stroke="#1a5fa8" stroke-width="2.5" opacity="0.85"/>
+          <defs>
+            <linearGradient id="bill1" x1="8" y1="26" x2="8" y2="40" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.12)"/>
+              <stop offset="100%" stop-color="rgba(0,0,0,0.1)"/>
+            </linearGradient>
+            <linearGradient id="bill2" x1="7" y1="34" x2="7" y2="48" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.08)"/>
+              <stop offset="100%" stop-color="rgba(0,0,0,0.12)"/>
+            </linearGradient>
+            <linearGradient id="bill3" x1="6" y1="42" x2="6" y2="56" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.06)"/>
+              <stop offset="100%" stop-color="rgba(0,0,0,0.15)"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div>
+        <div class="app-name">Simpson Budget</div>
+        <div class="app-tagline">Steward faithfully. Build wisely. Give generously.</div>
+      </div>
     </div>
     <div class="avatar" id="btnSignOut" title="Sign out">
       <span class="avatar-initials" id="avatarInitial">S</span>
@@ -548,37 +615,26 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
     <div class="pie-legend-side" id="legendHome"></div>
   </div>
 
-  <!-- Budget at a Glance — collapsible -->
-  <div class="collapsible-hdr" id="hdrBudget">
+  <!-- Budget at a Glance — always visible -->
+  <div class="sec-hdr">
     <div class="sec-title">Budget at a Glance</div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <button class="sec-link" id="btnEditBudget">Edit</button>
-      <span class="collapse-chevron" id="chevBudget">▾</span>
-    </div>
+    <button class="sec-link" id="btnEditBudget">Edit</button>
   </div>
-  <div class="collapsible-body collapsed" id="bodyBudget">
-    <div id="homeAllBudgets"></div>
-  </div>
+  <div id="homeAllBudgets"></div>
 
-  <!-- Monthly Totals — collapsible -->
-  <div class="collapsible-hdr" id="hdrTotals">
+  <!-- Monthly Totals — vertical bar chart, always visible -->
+  <div class="sec-hdr">
     <div class="sec-title">Monthly Totals</div>
-    <span class="collapse-chevron" id="chevTotals">▾</span>
   </div>
-  <div class="collapsible-body collapsed" id="bodyTotals">
-    <div class="totals-card" id="homeTotals" style="margin:0 16px;"></div>
-    <div class="spacer"></div>
-  </div>
+  <div class="vbar-chart-wrap" id="homeTotals"></div>
+  <div class="spacer" style="height:8px;"></div>
 
-  <!-- Transactions — collapsible -->
-  <div class="collapsible-hdr" id="hdrTx">
-    <div class="sec-title">Transactions</div>
-    <span class="collapse-chevron" id="chevTx">▾</span>
+  <!-- Spending Overview by Month -->
+  <div class="sec-hdr">
+    <div class="sec-title">Spending by Month</div>
   </div>
-  <div class="collapsible-body collapsed" id="bodyTx">
-    <div class="tx-list" id="txListHome" style="margin:0 16px;"></div>
-    <div class="spacer"></div>
-  </div>
+  <div class="spend-month-chart" id="spendByMonth"></div>
+
   <div class="spacer"></div>
 </div>
 
@@ -587,7 +643,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
 <!-- TRANSACTIONS VIEW -->
 <div id="viewTxns" class="view">
   <div style="padding:0 16px;">
-    <div style="padding:16px 0 12px;font-family:'Playfair Display',serif;font-size:16px;font-weight:500;color:var(--tp);">All Transactions</div>
+    <div style="padding:16px 0 12px;font-family:'Playfair Display',serif;font-size:16px;font-weight:500;color:var(--tp);" id="txnsViewTitle">All Transactions</div>
     <div class="tx-list" id="txListTxns"></div>
     <div class="spacer"></div>
   </div>
@@ -1508,20 +1564,75 @@ function renderBudgetGlance(listEl,txs,budgets){
   });
 }
 
-// ── TOTALS ──
+// ── TOTALS — vertical bar chart by category ──
 function renderTotals(elId,txs){
   const el=document.getElementById(elId);if(!el)return;el.innerHTML='';
   const catT={};txs.filter(t=>t.type==='expense').forEach(tx=>{catT[tx.category]=(catT[tx.category]||0)+tx.amount;});
-  const entries=Object.entries(catT).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const entries=Object.entries(catT).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const grand=entries.reduce((s,[,v])=>s+v,0);
-  if(!entries.length){el.innerHTML='<div class="empty">No expenses this month.</div>';return;}
-  const hdr=document.createElement('div');hdr.className='totals-row thdr';
-  hdr.innerHTML='<span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--tm);flex:1;">Category</span><span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--tm);">Month Total</span>';
-  el.appendChild(hdr);
-  entries.forEach(([cat,amt])=>{const pct=grand>0?Math.round((amt/grand)*100):0;const row=document.createElement('div');row.className='totals-row';row.innerHTML=`<span class="totals-cat">${cat}</span><div class="totals-bar"><div class="totals-bar-fill" style="width:${pct}%"></div></div><span class="totals-amt">${fmt(amt)}</span><span class="totals-pct">${pct}%</span>`;el.appendChild(row);});
-  const foot=document.createElement('div');foot.className='totals-row';foot.style.background='var(--mist-light)';
-  foot.innerHTML=`<span class="totals-cat" style="font-weight:600;color:var(--tp);">Total</span><div class="totals-bar"></div><span class="totals-amt" style="color:var(--tp);">${fmt(grand)}</span><span class="totals-pct"></span>`;
-  el.appendChild(foot);
+  if(!entries.length){el.innerHTML='<div class="empty" style="padding:16px;">No expenses this period.</div>';return;}
+  const maxVal=entries[0][1];
+  // Build bars
+  const barsHtml=entries.map(([cat,amt],i)=>{
+    const pct=maxVal>0?Math.max(4,Math.round((amt/maxVal)*100)):4;
+    const color=PIE_COLORS[i%PIE_COLORS.length];
+    const shortCat=cat.length>8?cat.slice(0,7)+'…':cat;
+    return `<div class="vbar-col">
+      <div class="vbar-amt">${fmt(amt)}</div>
+      <div class="vbar-fill-wrap">
+        <div class="vbar-fill" style="height:${pct}%;background:${color};"></div>
+      </div>
+      <div class="vbar-lbl">${shortCat}</div>
+    </div>`;
+  }).join('');
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:10px;color:var(--tm);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Total: ${fmt(grand)}</span>
+      <span style="font-size:10px;color:var(--tm);">${entries.length} categories</span>
+    </div>
+    <div class="vbar-chart">${barsHtml}</div>`;
+}
+
+// ── SPENDING BY MONTH ──
+function renderSpendByMonth(acct){
+  const el=document.getElementById('spendByMonth');if(!el)return;
+  // Build last 6 months
+  const months=[];
+  let cm=state.currentMonth,cy=state.currentYear;
+  for(let i=0;i<6;i++){
+    months.unshift({month:cm,year:cy});
+    cm--;if(cm<0){cm=11;cy--;}
+  }
+  const data=months.map(({month,year})=>{
+    const spent=state.transactions.filter(tx=>{
+      if(acct!=='All'&&tx.account!==acct)return false;
+      if(tx.type!=='expense')return false;
+      const d=new Date(tx.date+'T12:00:00');
+      return d.getMonth()===month&&d.getFullYear()===year;
+    }).reduce((s,t)=>s+t.amount,0);
+    return{month,year,spent};
+  });
+  const maxSpent=Math.max(...data.map(d=>d.spent),1);
+  const isCurrent=(m,y)=>m===state.currentMonth&&y===state.currentYear;
+  const barsHtml=data.map(({month,year,spent})=>{
+    const pct=maxSpent>0?Math.max(3,Math.round((spent/maxSpent)*100)):3;
+    const cur=isCurrent(month,year);
+    const lbl=MONTHS_SHORT[month]+'\''+String(year).slice(2);
+    return `<div class="spend-month-col">
+      <div style="font-size:8px;color:${cur?'var(--coral)':'var(--ts)'};font-weight:${cur?'700':'400'};text-align:center;margin-bottom:2px;">${spent>0?'$'+Math.round(spent):''}</div>
+      <div class="spend-month-bar${cur?' current':''}" style="height:${pct}%;"></div>
+      <div class="spend-month-lbl" style="${cur?'color:var(--accent);':''};">${lbl}</div>
+    </div>`;
+  }).join('');
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <span style="font-size:10px;color:var(--tm);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Last 6 Months</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="display:flex;align-items:center;gap:3px;font-size:9px;color:var(--ts);"><span style="width:8px;height:8px;border-radius:2px;background:var(--accent);display:inline-block;"></span>Prior</span>
+        <span style="display:flex;align-items:center;gap:3px;font-size:9px;color:var(--ts);"><span style="width:8px;height:8px;border-radius:2px;background:var(--coral);display:inline-block;"></span>Current</span>
+      </div>
+    </div>
+    <div class="spend-month-bars">${barsHtml}</div>`;
 }
 
 // ── TRANSACTIONS ──
@@ -1619,7 +1730,7 @@ function renderHome(){
   }
 
   renderTotals('homeTotals',getAllMonthTxs(acct));
-  renderTxList(getTxs(acct),'txListHome');
+  renderSpendByMonth(acct);
 }
 
 // ── MONEY AT A GLANCE ──
@@ -1685,6 +1796,7 @@ function renderBudgetsView(){
 function renderAll(){
   renderAccountTabs();
   renderHome();
+  renderTxnsView();
   renderBillsList();
   renderBillsCalendar();
 }
@@ -1938,7 +2050,14 @@ function switchView(view){
   });
   document.getElementById('appBody').scrollTop=0;
   if(view==='reports') renderReports();
-  if(view==='txns') renderTxList(getTxs(state.activeAccount),'txListTxns');
+  if(view==='txns') renderTxnsView();
+}
+
+function renderTxnsView(){
+  const acct=state.activeAccount;
+  const titleEl=document.getElementById('txnsViewTitle');
+  if(titleEl) titleEl.textContent=acct==='All'?'All Transactions':acct+' Transactions';
+  renderTxList(getTxs(acct),'txListTxns');
 }
 
 // ── TRANSACTION MODAL ──
@@ -2224,28 +2343,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
 
   // ── COLLAPSIBLE SECTIONS ──
-  [
-    ['hdrBudget','bodyBudget','chevBudget'],
-    ['hdrTotals','bodyTotals','chevTotals'],
-    ['hdrTx',    'bodyTx',    'chevTx'],
-  ].forEach(([hdrId,bodyId,chevId])=>{
-    const hdr=document.getElementById(hdrId);
-    const body=document.getElementById(bodyId);
-    const chev=document.getElementById(chevId);
-    let open=false;
-    hdr.addEventListener('click',()=>{
-      open=!open;
-      if(open){
-        body.classList.remove('collapsed');
-        body.style.maxHeight=body.scrollHeight+'px';
-        chev.classList.add('open');
-      } else {
-        body.style.maxHeight='0';
-        chev.classList.remove('open');
-        setTimeout(()=>body.classList.add('collapsed'),300);
-      }
-    });
-  });
+  // All home sections are now always visible — no collapsibles
 
   // Render skeleton while waiting for auth
   renderAll();
