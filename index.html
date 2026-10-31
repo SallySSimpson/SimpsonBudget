@@ -2084,22 +2084,13 @@ function renderTxnsView(){
   const titleEl=document.getElementById('txnsViewTitle');
   if(titleEl){
     const acctLabel=acct==='All'?'All Transactions':acct+' Transactions';
-    const periodLabel=p==='all'?'Full Month':p==='1'?'· Period 1':'· Period 2';
-    titleEl.textContent=acctLabel+(p!=='all'?' '+periodLabel:'');
+    const periodLabel=p==='1'?' · Period 1':p==='2'?' · Period 2':'';
+    titleEl.textContent=acctLabel+periodLabel;
   }
-  // For 'all', get full calendar month txs; otherwise use getTxs period filter
-  let txs;
-  if(p==='all'){
-    txs=state.transactions.filter(tx=>{
-      if(acct!=='All'&&tx.account!==acct)return false;
-      const d=new Date(tx.date+'T12:00:00');
-      return d.getMonth()===state.currentMonth&&d.getFullYear()===state.currentYear;
-    });
-  } else {
-    txs=getTxs(acct,p);
-  }
+  // All three options go through getTxs so date logic is consistent
+  const txs=getTxs(acct,p);
   renderTxList(txs,'txListTxns');
-  // Keep buttons in sync after account switch
+  // Keep buttons in sync
   document.querySelectorAll('.txns-period-btn').forEach(b=>{
     b.classList.toggle('active',b.dataset.period===p);
   });
