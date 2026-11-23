@@ -639,6 +639,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);-webkit
   </div>
   <div class="spend-month-chart" id="spendByMonth"></div>
 
+  <div style="text-align:center;font-size:9px;color:var(--tm);padding:18px 0 4px;letter-spacing:0.06em;">Simpson Budget · v2026.11.22</div>
   <div class="spacer"></div>
 </div>
 
@@ -1193,10 +1194,12 @@ async function saveBill(bill,isDelete=false){
   if(!currentUser){return;}
   setSyncState('syncing');
   try{
-    if(isDelete){await sb.from('bills').delete().eq('id',bill.id).eq('user_id',currentUser.id);}
-    else{await sb.from('bills').upsert({id:bill.id,name:bill.name,amount:bill.amount,day:bill.day,account:bill.account,period:bill.period,category:bill.category,autopay:bill.autopay,reminder:bill.reminder,user_id:currentUser.id});}
+    let res;
+    if(isDelete){res=await sb.from('bills').delete().eq('id',bill.id).eq('user_id',currentUser.id);}
+    else{res=await sb.from('bills').upsert({id:bill.id,name:bill.name,amount:bill.amount,day:bill.day,account:bill.account,period:bill.period,category:bill.category,autopay:bill.autopay,reminder:bill.reminder,user_id:currentUser.id});}
+    if(res.error)throw res.error;
     setSyncState('online');
-  }catch(e){console.error('Bill save error',e);setSyncState('offline');}
+  }catch(e){console.error('Bill save error',e);setSyncState('offline');showToast('❌ Bill not saved: '+(e.message||'check connection'));}
 }
 
 async function saveBudgets(account){
@@ -1205,24 +1208,42 @@ async function saveBudgets(account){
   try{
     const budgets=state.budgets[account]||{};
     const upserts=Object.entries(budgets).map(([cat,bv])=>({account,category:cat,p1_amount:bv.p1||0,p2_amount:bv.p2||0,note:bv.note||'',user_id:currentUser.id}));
+    // Save every line in place — existing budget lines are never wiped first
     if(upserts.length){
-      // Delete old rows for this account then reinsert
-      await sb.from('budgets').delete().eq('account',account).eq('user_id',currentUser.id);
-      await sb.from('budgets').insert(upserts);
+      const{error}=await sb.from('budgets').upsert(upserts,{onConflict:'account,category,user_id'});
+      if(error)throw error;
+    }
+    // Then remove only the categories that were deleted from this account
+    const{data:existing,error:readErr}=await sb.from('budgets').select('category').eq('account',account).eq('user_id',currentUser.id);
+    if(readErr)throw readErr;
+    for(const row of (existing||[])){
+      if(!budgets[row.category]){
+        const{error:delErr}=await sb.from('budgets').delete().eq('account',account).eq('category',row.category).eq('user_id',currentUser.id);
+        if(delErr)throw delErr;
+      }
     }
     setSyncState('online');
-  }catch(e){console.error('Budget save error',e);setSyncState('offline');}
+  }catch(e){console.error('Budget save error',e);setSyncState('offline');showToast('❌ Budget not saved: '+(e.message||'check connection'));}
 }
 
 async function saveSetting(key,value){
   if(!currentUser)return;
-  try{await sb.from('settings').upsert({key,value,user_id:currentUser.id,updated_at:new Date().toISOString()});}
-  catch(e){console.error('Setting save error',e);}
+  try{
+    const{error}=await sb.from('settings').upsert({key,value,user_id:currentUser.id,updated_at:new Date().toISOString()},{onConflict:'key,user_id'});
+    if(error)throw error;
+  }
+  catch(e){
+    console.error('Setting save error',e);
+    if(key!=='uiState')showToast('❌ Setting not saved: '+(e.message||'check connection'));
+  }
 }
 
 async function saveCategoryRule(keyword,category){
   if(!currentUser)return;
-  try{await sb.from('category_rules').upsert({keyword,category,user_id:currentUser.id});}
+  try{
+    const{error}=await sb.from('category_rules').upsert({keyword,category,user_id:currentUser.id},{onConflict:'keyword,user_id'});
+    if(error)throw error;
+  }
   catch(e){console.error('Rule save error',e);}
 }
 
@@ -1271,7 +1292,13 @@ async function migrateLocalData(){
 
 const fmt=n=>'$'+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 const showToast=msg=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);};
-function getExpCats(){return[...EXPENSE_CATS,...(state.extraCategories||[]).filter(c=>!EXPENSE_CATS.includes(c))];}
+function getExpCats(){
+  const extra=new Set(state.extraCategories||[]);
+  Object.values(state.budgets||{}).forEach(b=>Object.keys(b||{}).forEach(c=>extra.add(c)));
+  (state.transactions||[]).forEach(t=>{if(t.type==='expense'&&t.category)extra.add(t.category);});
+  (state.bills||[]).forEach(b=>{if(b.category)extra.add(b.category);});
+  return[...EXPENSE_CATS,...[...extra].filter(c=>!EXPENSE_CATS.includes(c))];
+}
 // PAY PERIOD BOUNDARIES:
 // Period 1: 15th through 29th of same month (the 15th paycheck covers this)
 // Period 2: 30th (or last day if month < 30 days) through 14th of next month
@@ -2223,7 +2250,7 @@ function openBudgetModal(){
   document.getElementById('newCatName').value='';document.getElementById('budgetModal').classList.add('open');
 }
 function buildBudgetRow(list,cat,bv){
-  const isExtra=(state.extraCategories||[]).includes(cat);
+  const isExtra=!EXPENSE_CATS.includes(cat);
   const row=document.createElement('div');row.className='budget-edit-row';row.dataset.cat=cat;
   row.innerHTML=`
     <div class="budget-edit-row-top">
